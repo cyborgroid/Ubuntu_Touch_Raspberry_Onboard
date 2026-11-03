@@ -81,36 +81,42 @@ sec "home screen"
 shot home
 
 sec "tap tiles"
-tap 174 90 30                # the notes tile
-ps -eo comm | grep -E 'gnome-text-edit' | sort -u
-shot tap-notes
+close_app() { keys alt-f4; sleep "${1:-6}"; }
+open_tile() { # name x y seconds
+  tap "$2" "$3" "$4"
+  echo "$1: $(ps -eo comm --sort=-start_time | head -4 | tr '\n' ' ')"
+  shot "tap-$1"
+}
+open_tile notes 174 92 30
 tap 457 51 6                 # the window's close button
 shot back-home
-tap 360 200 25               # the files tile
-ps -eo comm | grep -E 'nautilus' | sort -u
-shot tap-files
-keys alt-f4; sleep 4
-tap 455 373 40               # the settings tile
-shot tap-settings
-keys alt-f4; sleep 4
+open_tile phone 68 92 40; close_app
+open_tile files 296 199 25; close_app
+open_tile documents 411 199 20; close_app
+open_tile network 296 305 40; close_app
+open_tile settings 411 305 30; close_app
+open_tile video 68 305 30; close_app
+open_tile token 296 412 25; close_app
+open_tile browser 182 199 150; close_app 15
+open_tile all-apps 411 412 8; keys esc; sleep 5
+shot home-again
 
-sec "Korean: an input source, typed with a hardware key and on the on-screen keyboard"
-tap 174 90 30                # notes again
-tap 240 300 4
+sec "Korean: typed with a hardware key, then on the on-screen keyboard"
+tap 174 92 30                # notes
+tap 240 200 5
 keys meta_l-spc
-sleep 4
+sleep 6
 shot osk-korean
-as_user gsettings get org.gnome.desktop.input-sources mru-sources
+journalctl _UID="$uid" --no-pager -n 300 | grep -iE 'ibus|hangul' | tail -5 | cut -c1-150
+pgrep -a ibus-engine | cut -c1-70
 for key in g k s r m f; do keys "$key"; done
-shot typed-hardware
 keys spc
-tap 209 594; tap 335 594; tap 83 594   # on-screen keys for ㅎ ㅏ ㄴ
-tap 146 549; tap 314 635; tap 167 594  # and ㄱ ㅡ ㄹ
+shot typed-hardware
+tap 209 529; tap 336 529; tap 84 529   # on-screen keys for ㅎ ㅏ ㄴ
+tap 147 485; tap 313 573; tap 167 529  # and ㄱ ㅡ ㄹ
 shot typed-onscreen
 keys meta_l-spc
-keys alt-f4; sleep 3
-tap 300 400 3                # "don't save" lands here or does nothing
-keys alt-f4; sleep 4
+pkill -f gnome-text-editor; sleep 5
 
 sec "monitor connected: plain Ubuntu, apps still open"
 runuser -u "$USER_NAME" -- env XDG_RUNTIME_DIR="/run/user/$uid" \
@@ -130,7 +136,7 @@ pkill -x gnome-calculato; sleep 5
 shot touch-again
 
 sec "fingerprint button locks the screen, as standard Ubuntu"
-tap 240 560 12
+tap 240 573 12
 as_user gdbus call --session --dest org.gnome.ScreenSaver --object-path /org/gnome/ScreenSaver --method org.gnome.ScreenSaver.GetActive
 shot locked
 

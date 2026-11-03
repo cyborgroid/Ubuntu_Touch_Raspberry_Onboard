@@ -6,8 +6,9 @@ ibus-hangul
 fonts-noto-cjk
 fonts-noto-color-emoji
 
-# Calls, for the home screen's phone tile
+# Home screen tiles the desktop image has no app for
 gnome-calls
+showtime
 
 # VPN, kill-switch and Wi-Fi radar
 wireguard-tools

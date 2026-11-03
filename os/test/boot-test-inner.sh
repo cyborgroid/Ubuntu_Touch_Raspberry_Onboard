@@ -81,7 +81,7 @@ qemu-system-aarch64 -M virt -cpu max -smp 8 -m 6144 -accel tcg,thread=multi \
   -kernel "$WORK/vmlinuz" -initrd "$WORK/initrd.img" \
   -append "root=LABEL=writable rootfstype=ext4 rootwait console=ttyAMA0 systemd.show_status=1" \
   -drive "file=$WORK/disk.img,format=raw,if=none,id=d0" -device virtio-blk-pci,drive=d0 \
-  -device virtio-gpu-pci,xres=480,yres=640 -device qemu-xhci -device usb-tablet \
+  -device virtio-gpu-pci,xres=480,yres=640 -device qemu-xhci -device usb-kbd -device usb-tablet \
   -nic user,model=virtio-net-pci -display none -monitor none \
   -qmp "unix:$WORK/qmp.sock,server,nowait" -serial "file:/out/serial.log" &
 QEMU=$!

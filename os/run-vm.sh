@@ -5,12 +5,14 @@
 #   os/run-vm.sh --reset   start again as on a freshly flashed card
 #
 # This emulates an arm64 machine (QEMU's generic board) on an x86 PC, so it is slow:
-# expect several minutes for the first boot. Mouse clicks stand in for touch. There is
-# no Wi-Fi chip or Pi hardware inside; the network is a virtual Ethernet cable.
+# expect several minutes for the first boot, then Ubuntu's normal first-run setup.
+# Mouse clicks stand in for touch, so the edge swipes are not available. There is no
+# Wi-Fi chip or Pi hardware inside; the network is a virtual Ethernet cable.
 #
-# Inside it, plugging in a monitor is simulated from the Terminal icon:
-#   cyborgroid-core set-mode desktop   switch to the standard Ubuntu desktop
-#   cyborgroid-core set-mode mobile    back to the touch home screen
+# Plugging in a monitor is simulated from the terminal tile:
+#   SCHEMAS=/usr/share/gnome-shell/extensions/cyborgroid-touch@cyborgroid/schemas
+#   gsettings --schemadir $SCHEMAS set org.gnome.shell.extensions.cyborgroid-touch mode-override desktop
+#   ...                                                                            mode-override auto
 set -euo pipefail
 
 ROOT=$(dirname "$(dirname "$(readlink -f "$0")")")
@@ -63,7 +65,7 @@ docker run --rm --name cyborgroid-vm --user "$(id -u):$(id -g)" --hostname "$(ho
       -kernel /tmp/vmlinuz -initrd /tmp/initrd \
       -append "root=LABEL=writable rootfstype=ext4 rootwait console=ttyAMA0" \
       -drive "file=$DISK,format=raw,if=none,id=d0" -device virtio-blk-pci,drive=d0 \
-      -device virtio-gpu-pci,xres=720,yres=1280 -device qemu-xhci -device usb-tablet -device usb-kbd \
+      -device virtio-gpu-pci,xres=480,yres=640 -device qemu-xhci -device usb-tablet -device usb-kbd \
       -nic user,model=virtio-net-pci -display gtk,zoom-to-fit=on,show-menubar=off \
       -serial file:/build/vm-serial.log
   '
