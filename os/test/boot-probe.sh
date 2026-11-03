@@ -80,6 +80,16 @@ walk(json.load(sys.stdin))'
 as_cyborg swaymsg -t get_outputs | python3 -c 'import json,sys; [print(o["name"], o["current_mode"]) for o in json.load(sys.stdin)]'
 echo "@@SHOT touch"; sleep 8
 
+sec "why GTK apps do or do not start under sway"
+wl=$(basename "$(ls /run/user/"$uid"/wayland-* 2>/dev/null | grep -v lock | head -1)")
+echo "wayland socket: $wl"
+as_cyborg env WAYLAND_DISPLAY="$wl" timeout 12 waybar --config /usr/share/cyborgroid/waybar/mobile.jsonc --style /usr/share/cyborgroid/waybar/mobile.css 2>&1 | tail -12 | cut -c1-170
+echo "waybar rc=$?"
+as_cyborg env WAYLAND_DISPLAY="$wl" timeout 25 gnome-calculator 2>&1 | tail -10 | cut -c1-170
+echo "calculator rc=$?"
+journalctl _UID="$uid" --no-pager | grep -iE 'waybar|calculator|cannot open display|gtk' | tail -12 | cut -c1-170
+free -h | sed -n 1,2p
+
 sec "open apps from the touch session"
 as_cyborg swaymsg workspace number 2
 as_cyborg swaymsg exec -- gnome-calculator; sleep 60
@@ -95,6 +105,8 @@ sleep 90
 session_log 6
 ps -eo user,comm | grep -E 'sway|gnome-shell|gnome-session|cyborgroid' | sort -u
 journalctl _UID="$uid" --no-pager -n 600 | grep -E 'gnome-shell|gnome-session' | grep -iE 'error|fail|fatal' | tail -10 | cut -c1-190
+echo "crash reports:"; ls -la /var/crash/ 2>/dev/null
+for crash in /var/crash/*.crash; do [ -f "$crash" ] && grep -aE '^(ExecutablePath|Signal|Title):' "$crash"; done
 echo "@@SHOT ubuntu-desktop"; sleep 8
 
 sec "monitor removed: back to the touch home screen"
