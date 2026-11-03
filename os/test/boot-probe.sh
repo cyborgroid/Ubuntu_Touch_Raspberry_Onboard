@@ -41,6 +41,9 @@ set_mode() { as_user gsettings --schemadir "$EXT_SCHEMAS" set org.gnome.shell.ex
 wait_for gnome-shell 900
 until as_user gnome-extensions info cyborgroid-touch@cyborgroid >/dev/null 2>&1; do sleep 5; done
 sleep 120
+# Ubuntu's own welcome window, which any new account sees once. It would cover the home
+# screen and take the taps meant for it.
+pkill -f gnome-initial-setup; sleep 10
 
 sec "system"
 systemctl is-system-running
@@ -110,7 +113,8 @@ tap 300 400 3                # "don't save" lands here or does nothing
 keys alt-f4; sleep 4
 
 sec "monitor connected: plain Ubuntu, apps still open"
-as_user gnome-calculator >/dev/null 2>&1 &
+runuser -u "$USER_NAME" -- env XDG_RUNTIME_DIR="/run/user/$uid" \
+  DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" WAYLAND_DISPLAY=wayland-0 gnome-calculator >/dev/null 2>&1 &
 sleep 30
 set_mode desktop
 sleep 25
