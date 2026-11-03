@@ -63,7 +63,7 @@ docker run --rm --name cyborgroid-vm --user "$(id -u):$(id -g)" --hostname "$(ho
       -kernel /tmp/vmlinuz -initrd /tmp/initrd \
       -append "root=LABEL=writable rootfstype=ext4 rootwait console=ttyAMA0" \
       -drive "file=$DISK,format=raw,if=none,id=d0" -device virtio-blk-pci,drive=d0 \
-      -device virtio-gpu-pci,edid=off,xres=720,yres=1280 -device qemu-xhci -device usb-tablet -device usb-kbd \
+      -device virtio-gpu-pci,xres=720,yres=1280 -device qemu-xhci -device usb-tablet -device usb-kbd \
       -nic user,model=virtio-net-pci -display gtk,zoom-to-fit=on,show-menubar=off \
       -serial file:/build/vm-serial.log
   '
