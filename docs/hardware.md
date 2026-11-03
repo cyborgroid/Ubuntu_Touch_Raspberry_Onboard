@@ -1,6 +1,6 @@
 # 하드웨어: Before → After를 실제 부품으로 옮기기
 
-`design/Raspberry_Desktop_Before.png`(Flirc 케이스), `design/Raspberry_Desktop_After.png`(렌더링), `certification.md`를 바탕으로 정리했습니다. 치수와 런타임은 설계 출발점을 잡기 위한 추정치이며, 실측 전에 절삭 가공을 하면 안 됩니다.
+`design/Raspberry_Desktop_Before.png`(Flirc 케이스), `design/Raspberry_Desktop_After.png`(렌더링), `certification.md`를 바탕으로 정리했습니다. **케이스는 Flirc Raspberry Pi 5 Case 기반으로 확정했습니다.** Compute Module 5 맞춤 설계는 하지 않으므로 렌더링보다 두꺼워집니다. 치수와 런타임은 설계 출발점을 잡기 위한 추정치이며, 실측 전에 절삭 가공을 하면 안 됩니다.
 
 ## After 렌더링이 Pi 5와 맞지 않는 부분
 
@@ -38,10 +38,11 @@ After 이미지는 이 사진을 바탕으로 만든 합성 또는 생성 이미
 | 선택 | 외곽 크기 | 장단점 |
 |---|---|---|
 | 공식 Touch Display 2, 5인치 | 91.5 × 143.5 mm, 깊이 16 mm | 자동 인식, OS 설정 불필요. 다만 Pi보다 훨씬 길어 렌더링 형태가 아니고, 깊이 16 mm는 위 표의 3–5 mm보다 큼 |
-| Waveshare 4-DSI-TOUCH-A, 4인치 480×800 | 108.3 × 65.1 mm, 표시 영역 86.4 × 51.84 mm | 표시 영역은 케이스 상판(94 × 66 mm) 안에 들어가지만 유리가 긴 쪽으로 약 14 mm 튀어나옴. 세로형 패널이라 회전 필요 |
-| Waveshare 3.5inch DSI LCD (E), 640×480 | 텍스트 사양 없음, 도면 확인 필요 | 렌더링 형태에 가장 근접할 가능성. 화면이 작고 베젤이 렌더링보다 넓어질 수 있음 |
+| **Waveshare 4inch DSI LCD, 480×800 (채택)** | 텍스트 사양 없음, 구매 전 도면 확인 필요 | 드라이버가 이 OS에 포함(`vc4-kms-dsi-waveshare-panel,4_0_inch`). 전원과 통신을 DSI 케이블 하나로 처리. 세로형이라 터치폰 형태에 맞음 |
+| Waveshare 3.5inch DSI LCD (E), 640×480 | 텍스트 사양 없음 | 더 작지만 제조사 전용 오버레이를 별도로 설치해야 함 |
+| Waveshare 4-DSI-TOUCH-A, 480×800 | 108.3 × 65.1 mm | **사용 안 함.** 이름은 비슷하지만 이 OS의 오버레이에 해당 패널 값이 없고 GPIO 전원 배선이 필요 |
 
-렌더링처럼 베젤 없이 상판을 꽉 채우는 기성 패널은 찾지 못했습니다. 두 Waveshare 패널은 Pi 5 지원으로 표시되어 있지만 오버레이 설정은 제조사 문서로 확인해야 합니다.
+렌더링처럼 베젤 없이 상판을 꽉 채우는 기성 패널은 찾지 못했습니다. 위 오버레이 값은 공식 이미지의 `overlays/README`에서 확인했지만, 제조사 문서에 Ubuntu 절차는 없으므로 실물로 시험해야 합니다.
 
 공식 패널은 세로형(720×1280)입니다. 렌더링처럼 가로로 쓰려면 Lomiri에서 회전 설정이 필요하며, 실기기에서 확인해야 합니다. Pi 5의 MIPI 커넥터는 22핀 미니 규격이라 22핀–15핀 변환 FFC가 필요합니다.
 
@@ -79,6 +80,7 @@ Pi 5는 부하가 걸리면 냉각이 필요합니다. Flirc 케이스는 알루
 - [Flirc Raspberry Pi 3B Case (제조사)](https://flirc.tv/raspberry-pi-case)
 - [FLIRC Raspberry Pi 3 Case (The Pi Hut)](https://thepihut.com/products/flirc-raspberry-pi-3-b-case)
 - [Flirc Aluminum Case for Raspberry Pi 5 (Adafruit)](https://www.adafruit.com/product/5847)
+- [Waveshare 4inch DSI LCD 위키](https://waveshare.com/wiki/4inch_DSI_LCD)
 - [Waveshare 4-DSI-TOUCH-A](https://www.waveshare.com/4-dsi-touch-a.htm)
 - [Waveshare 3.5inch DSI LCD (E)](https://www.waveshare.com/3.5inch-dsi-lcd-e.htm)
 - [Raspberry Pi Touch Display 2 문서](https://www.raspberrypi.com/documentation/accessories/touch-display-2.html)

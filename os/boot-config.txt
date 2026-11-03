@@ -1,10 +1,12 @@
 
 # --- Cyborgroid ---
-# The base image's config.txt already sets vc4-kms-v3d and display_auto_detect=1,
-# so official Touch Displays work as is. A third-party panel of the size in the
-# After render needs its vendor's overlay here instead.
 [pi5]
-# Battery power: leave this commented out unless the boost converter really
-# delivers 5 V 5 A; it lets the USB ports draw 1.6 A instead of 600 mA.
+# Waveshare 4inch DSI LCD (480x800), on the DSI1 connector. The base config above
+# has already loaded vc4-kms-v3d, which this needs. With no panel attached the
+# overlay does nothing and a monitor still works. For an official Touch Display,
+# remove this line: those are auto-detected.
+dtoverlay=vc4-kms-dsi-waveshare-panel,4_0_inch
+# Battery power: leave this commented out unless the supply really delivers
+# 5 V 5 A; it lets the USB ports draw 1.6 A instead of 600 mA.
 #usb_max_current_enable=1
 [all]
