@@ -35,7 +35,7 @@ systemctl set-default graphical.target
 systemctl enable cyborgroid-firstboot.service cyborgroid-killswitch.service \
   cyborgroid-core.service cyborgroid-session.service NetworkManager.service wg-quick@wg0.service
 systemctl disable ssh.service ssh.socket systemd-networkd-wait-online.service getty@tty1.service || true
-# cyborgroid-session owns the display and chooses between Lomiri and GNOME.
+# cyborgroid-session owns the display and chooses between the touch session and GNOME.
 systemctl disable gdm3.service || true
 systemctl mask gdm3.service
 rm -f /etc/systemd/system/display-manager.service
