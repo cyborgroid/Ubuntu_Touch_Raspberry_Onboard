@@ -5,6 +5,7 @@
 #
 # FIRSTRUN=1 boots as a fresh card, to see Ubuntu's first-run setup. Otherwise the copy
 # gets a test account that logs in by itself. SEED_WG=1 also seeds a WireGuard config.
+# KOREAN_ONLY=1 skips to the Korean input test.
 #
 # QEMU has no Pi 5 model, so this uses its generic `virt` board. It exercises the whole
 # userland (systemd units, GNOME, the touch extension, Korean input) but NOT the Pi
@@ -16,7 +17,7 @@ ROOT=$(dirname "$(dirname "$(dirname "$(readlink -f "$0")")")")
 OUT=$ROOT/build/boot-test${SEED_WG:+-seeded}${FIRSTRUN:+-firstrun}
 mkdir -p "$OUT"
 
-docker run --rm --privileged --name cyborgroid-boot-test -e SEED_WG="${SEED_WG:-}" -e FIRSTRUN="${FIRSTRUN:-}" \
+docker run --rm --privileged --name cyborgroid-boot-test -e SEED_WG="${SEED_WG:-}" -e FIRSTRUN="${FIRSTRUN:-}" -e KOREAN_ONLY="${KOREAN_ONLY:-}" \
   -v "$ROOT/os:/os:ro" -v "$IMG:/image.img:ro" -v "$OUT:/out" ubuntu:26.04 \
   bash -euc '
     export DEBIAN_FRONTEND=noninteractive

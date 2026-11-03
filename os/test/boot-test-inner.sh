@@ -42,6 +42,7 @@ UNIT
 ln -sf /etc/systemd/system/boot-probe.service "$MNT/etc/systemd/system/graphical.target.wants/boot-probe.service"
 # A getty on the same port hangs up the probe's open file, losing all its output.
 ln -sf /dev/null "$MNT/etc/systemd/system/serial-getty@ttyAMA0.service"
+[ -z "${KOREAN_ONLY:-}" ] || touch "$MNT/etc/cyborgroid/test-korean-only"
 if [ -z "${FIRSTRUN:-}" ]; then
   # A ready account that logs in by itself, in place of the first-run setup. Disposable:
   # the shipped image has neither.

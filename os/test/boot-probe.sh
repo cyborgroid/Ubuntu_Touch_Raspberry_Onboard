@@ -80,6 +80,8 @@ ip6tables -S | sed -n 1,3p
 sec "home screen"
 shot home
 
+# With KOREAN_ONLY the disposable copy has this file, to skip straight to typing.
+if [ ! -e /etc/cyborgroid/test-korean-only ]; then
 sec "tap tiles"
 close_app() { keys alt-f4; sleep "${1:-6}"; }
 open_tile() { # name x y seconds
@@ -97,10 +99,13 @@ open_tile network 296 305 40; close_app
 open_tile settings 411 305 30; close_app
 open_tile video 68 305 30; close_app
 open_tile token 296 412 25; close_app
-open_tile browser 182 199 150; close_app 15
+open_tile browser 182 199 150
+pkill -f firefox; sleep 8
 open_tile all-apps 411 412 25
 keys esc; sleep 10
 shot home-again
+
+fi
 
 sec "Korean: typed with a hardware key, then on the on-screen keyboard"
 tap 174 92 30                # notes
@@ -118,6 +123,8 @@ tap 147 485; tap 313 573; tap 167 529  # and ㄱ ㅡ ㄹ
 shot typed-onscreen
 keys meta_l-spc
 pkill -f gnome-text-editor; sleep 5
+
+if [ -e /etc/cyborgroid/test-korean-only ]; then echo "@@DONE"; exit 0; fi
 
 sec "monitor connected: plain Ubuntu, apps still open"
 runuser -u "$USER_NAME" -- env XDG_RUNTIME_DIR="/run/user/$uid" \
