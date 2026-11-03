@@ -14,11 +14,11 @@ OUT=$ROOT/build/boot-test
 mkdir -p "$OUT"
 
 docker run --rm --privileged --name cyborgroid-boot-test \
-  -v "$ROOT/os/test:/test:ro" -v "$IMG:/image.img:ro" -v "$OUT:/out" ubuntu:26.04 \
+  -v "$ROOT/os:/os:ro" -v "$IMG:/image.img:ro" -v "$OUT:/out" ubuntu:26.04 \
   bash -euc '
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
     apt-get install -y -qq --no-install-recommends qemu-system-arm qemu-utils ipxe-qemu \
       python3 fdisk mount xz-utils >/dev/null
-    /test/boot-test-inner.sh
+    /os/test/boot-test-inner.sh
   '

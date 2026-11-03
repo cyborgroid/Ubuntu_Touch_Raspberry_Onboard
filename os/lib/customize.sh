@@ -3,35 +3,26 @@
 # it through loop mounts of its partitions, and shrinks the result.
 #   customize.sh <base.img.xz> <output.img> <core binary> <shell publish dir>
 set -euo pipefail
+shopt -s inherit_errexit
 
 BASE=$1 OUT=$2 CORE=$3 SHELL_DIR=$4
 HERE=$(dirname "$(readlink -f "$0")")
 OS_DIR=$(dirname "$HERE")
+# shellcheck source=loop.sh
+. "$HERE/loop.sh"
 EXTRA_SIZE=9G
 MNT=$(mktemp -d)
-loops=()
 qemu_registered_here=0
 QEMU_ENTRY=/proc/sys/fs/binfmt_misc/qemu-aarch64
 
 cleanup() {
   set +e
   umount -R "$MNT" 2>/dev/null
-  for l in "${loops[@]:-}"; do [ -n "$l" ] && losetup -d "$l"; done
+  loop_detach_all
   # binfmt_misc is global to the host, so leave it as it was found.
   [ "$qemu_registered_here" = 1 ] && echo -1 > "$QEMU_ENTRY"
 }
 trap cleanup EXIT
-
-attach() { # image offset size -> loop device
-  local dev
-  dev=$(losetup --find --show --offset "$2" --sizelimit "$3" "$1")
-  loops+=("$dev")
-  echo "$dev"
-}
-
-part_field() { # image partnum field(start|size) -> bytes
-  sfdisk -J "$1" | python3 -c "import json,sys; p=json.load(sys.stdin)['partitiontable']['partitions'][$2-1]; print(p['$3']*512)"
-}
 
 echo "==> registering arm64 emulation"
 mountpoint -q /proc/sys/fs/binfmt_misc || mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
@@ -46,16 +37,16 @@ xz -dc -T0 "$BASE" > "$OUT"
 truncate -s "+$EXTRA_SIZE" "$OUT"
 echo ', +' | sfdisk --no-reread --no-tell-kernel -N 2 "$OUT"
 
-ROOT_START=$(part_field "$OUT" 2 start)
-ROOT_SIZE=$(part_field "$OUT" 2 size)
-BOOT_START=$(part_field "$OUT" 1 start)
-BOOT_SIZE=$(part_field "$OUT" 1 size)
+read -r ROOT_START ROOT_SIZE < <(part_bytes "$OUT" 2)
+read -r BOOT_START BOOT_SIZE < <(part_bytes "$OUT" 1)
 
-ROOT_LOOP=$(attach "$OUT" "$ROOT_START" "$ROOT_SIZE")
-BOOT_LOOP=$(attach "$OUT" "$BOOT_START" "$BOOT_SIZE")
+loop_attach "$OUT" "$ROOT_START" "$ROOT_SIZE"; ROOT_LOOP=$LOOP_DEV
+loop_attach "$OUT" "$BOOT_START" "$BOOT_SIZE"; BOOT_LOOP=$LOOP_DEV
 e2fsck -fy "$ROOT_LOOP" || [ $? -le 1 ]
 resize2fs "$ROOT_LOOP"
 mount "$ROOT_LOOP" "$MNT"
+# The image has no such directory; systemd creates fstab mount points at boot.
+mkdir -p "$MNT/boot/firmware"
 mount "$BOOT_LOOP" "$MNT/boot/firmware"
 for fs in proc sys dev dev/pts; do mount --rbind "/$fs" "$MNT/$fs"; done
 
@@ -89,8 +80,7 @@ e2fsck -fy "$ROOT_LOOP" || [ $? -le 1 ]
 resize2fs -M "$ROOT_LOOP"
 BLOCKS=$(dumpe2fs -h "$ROOT_LOOP" 2>/dev/null | awk '/^Block count:/ {print $3}')
 BLOCK_SIZE=$(dumpe2fs -h "$ROOT_LOOP" 2>/dev/null | awk '/^Block size:/ {print $3}')
-for l in "${loops[@]}"; do losetup -d "$l"; done
-loops=()
+loop_detach_all
 NEW_ROOT_SECTORS=$((BLOCKS * BLOCK_SIZE / 512))
 echo ", $NEW_ROOT_SECTORS" | sfdisk --no-reread --no-tell-kernel -N 2 "$OUT"
 truncate -s $((ROOT_START + NEW_ROOT_SECTORS * 512)) "$OUT"
