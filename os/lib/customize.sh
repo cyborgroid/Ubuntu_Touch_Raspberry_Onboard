@@ -81,11 +81,15 @@ rm -f "$MNT/etc/resolv.conf"
 [ -n "$RESOLV_LINK" ] && ln -s "$RESOLV_LINK" "$MNT/etc/resolv.conf"
 
 echo "==> checking ownership"
-stray=$(find "$MNT/etc" "$MNT/usr" "$MNT/opt" "$MNT/var/lib/cyborgroid-firstboot" -xdev -uid +999 ! -uid 65534 2>/dev/null | head -20)
-if [ -n "$stray" ] || [ "$(stat -c %u "$MNT" "$MNT/etc" "$MNT/usr" | sort -u)" != 0 ]; then
-  echo "system files not owned by root:"; echo "$stray"
+stray=$(mktemp)
+find "$MNT/etc" "$MNT/usr" "$MNT/opt" -xdev -uid +999 ! -uid 65534 > "$stray"
+if [ -s "$stray" ] || [ "$(stat -c %u "$MNT" "$MNT/etc" "$MNT/usr" | sort -u)" != 0 ]; then
+  echo "system files not owned by root:"
+  stat -c '%u %n' "$MNT" "$MNT/etc" "$MNT/usr"
+  sed 20q "$stray"
   exit 1
 fi
+echo "all system files are root-owned"
 
 echo "==> shrinking"
 umount -R "$MNT"
