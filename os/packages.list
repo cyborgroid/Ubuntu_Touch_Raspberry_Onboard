@@ -2,26 +2,13 @@
 # which supplies GNOME, the standard desktop used when a monitor is connected.
 # Installed with --no-install-recommends, so anything needed at runtime is listed.
 
-# Ubuntu Touch user interface and apps (Lomiri, from the Ubuntu archive)
-lomiri
-lomiri-desktop-session
-mir-platform-graphics-gbm-kms
-lomiri-keyboard
-lomiri-polkit-agent
-lomiri-indicator-network
-lomiri-indicator-transfer
-lomiri-indicator-location
-lomiri-app-launch-tools
-inotify-tools
-lomiri-system-settings
-lomiri-filemanager-app
-lomiri-gallery-app
-lomiri-music-app
-lomiri-calculator-app
-lomiri-clock-app
-lomiri-docviewer-app
-lomiri-terminal-app
-morph-browser
+# Touch session: a home screen modelled on Ubuntu Touch, built from these rather
+# than from Ubuntu Touch itself. Its apps are the ones the desktop image ships.
+sway
+waybar
+wvkbd
+wlr-randr
+grim
 
 # Network and security
 wireguard-tools

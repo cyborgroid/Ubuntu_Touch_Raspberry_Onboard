@@ -4,7 +4,7 @@
 #   os/test/boot-test.sh build/cyborgroid-pi5-YYYYMMDD.img
 #
 # QEMU has no Pi 5 model, so this uses its generic `virt` board. It exercises the
-# whole userland (systemd units, first boot, core daemon, Lomiri, GNOME, the mode switch)
+# whole userland (systemd units, first boot, core daemon, touch session, GNOME, the mode switch)
 # but NOT the Pi firmware, the DSI panel or the Wi-Fi chip.
 set -euo pipefail
 

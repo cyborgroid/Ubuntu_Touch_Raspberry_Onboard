@@ -7,7 +7,10 @@ namespace CyborgroidDashboard.ViewModels;
 
 public sealed class MainViewModel : ViewModelBase
 {
-    public const int PageCount = 2;
+    public const int PageCount = 3;
+
+    // gnome-control-center refuses to start outside a session that says it is GNOME.
+    private const string SettingsCommand = "env XDG_CURRENT_DESKTOP=GNOME gnome-control-center";
 
     private static readonly IBrush Good = SolidColorBrush.Parse("#00FF7F");
     private static readonly IBrush Warn = SolidColorBrush.Parse("#FFB020");
@@ -20,10 +23,24 @@ public sealed class MainViewModel : ViewModelBase
 
     public MainViewModel()
     {
-        ShowDashboard = new RelayCommand(() => Page = 0);
-        ShowRadar = new RelayCommand(() => Page = 1);
-        var settings = SettingsApp();
-        OpenSettings = new RelayCommand(() => AppLauncher.Launch(settings), AppLauncher.IsInstalled(settings));
+        ShowDashboard = new RelayCommand(() => Page = 1);
+        ShowRadar = new RelayCommand(() => Page = 2);
+        OpenSettings = Launcher(SettingsCommand);
+        Tiles =
+        [
+            Tile("전화", "#2FB457", Icons.Phone, "ptyxis -- baresip"),
+            Tile("브라우저", "#FFFFFF", Icons.Globe, "firefox"),
+            Tile("파일", "#2F74D0", Icons.Folder, "nautilus"),
+            Tile("갤러리", "#5A4FB5", Icons.Image, "loupe"),
+            Tile("메모", "#2AA3C7", Icons.Note, "gnome-text-editor"),
+            Tile("계산기", "#4A4F57", Icons.Calculator, "gnome-calculator"),
+            Tile("터미널", "#3A3D42", Icons.Terminal, "ptyxis"),
+            Tile("Wi-Fi", "#2F74D0", Icons.Wifi, "ptyxis -- nmtui"),
+            new AppTile("토큰", "#0F9D6B", Icons.Token, ShowDashboard),
+            new AppTile("VPN", "#4A4F57", Icons.Shield, ShowDashboard),
+            new AppTile("레이더", "#7A4FC0", Icons.Radar, ShowRadar),
+            Tile("설정", "#E95420", Icons.Gear, SettingsCommand),
+        ];
 
         var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         timer.Tick += (_, _) => _ = RefreshAsync();
@@ -31,14 +48,24 @@ public sealed class MainViewModel : ViewModelBase
         _ = RefreshAsync();
     }
 
+    public IReadOnlyList<AppTile> Tiles { get; }
     public ICommand ShowDashboard { get; }
     public ICommand ShowRadar { get; }
     public ICommand OpenSettings { get; }
 
-    private static string SettingsApp() =>
-        Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")?.Contains("Lomiri") == true
-            ? "lomiri-system-settings"
-            : "gnome-control-center";
+    private static ICommand Launcher(string command) =>
+        new RelayCommand(() => AppLauncher.Launch(command), IsAvailable(command));
+
+    /// <summary>A tile whose app is missing stays visible but dimmed and inert.</summary>
+    private static AppTile Tile(string title, string color, string icon, string command)
+    {
+        var available = IsAvailable(command);
+        return new AppTile(title, color, icon, new RelayCommand(() => AppLauncher.Launch(command), available), available);
+    }
+
+    /// <summary>Wrappers such as "ptyxis -- baresip" need both programs present.</summary>
+    private static bool IsAvailable(string command) =>
+        AppLauncher.IsInstalled(command) && AppLauncher.IsInstalled(command.Split(' ').Last());
 
     private int _page;
     public int Page
@@ -48,14 +75,22 @@ public sealed class MainViewModel : ViewModelBase
         {
             var clamped = Math.Clamp(value, 0, PageCount - 1);
             Set(ref _page, clamped);
-            Raise(nameof(IsDashboardPage), nameof(IsRadarPage), nameof(Dot0), nameof(Dot1));
+            Raise(nameof(IsHomePage), nameof(IsDashboardPage), nameof(IsRadarPage), nameof(Dot0), nameof(Dot1), nameof(Dot2));
         }
     }
 
-    public bool IsDashboardPage => Page == 0;
-    public bool IsRadarPage => Page == 1;
+    public bool IsHomePage => Page == 0;
+    public bool IsDashboardPage => Page == 1;
+    public bool IsRadarPage => Page == 2;
     public IBrush Dot0 => Page == 0 ? Brushes.White : Faint;
     public IBrush Dot1 => Page == 1 ? Brushes.White : Faint;
+    public IBrush Dot2 => Page == 2 ? Brushes.White : Faint;
+
+    private int _gridColumns = 3;
+    public int GridColumns { get => _gridColumns; set => Set(ref _gridColumns, value); }
+
+    private int _cardColumns = 1;
+    public int CardColumns { get => _cardColumns; set => Set(ref _cardColumns, value); }
 
     private string _clock = DateTime.Now.ToString("HH:mm");
     public string Clock { get => _clock; private set => Set(ref _clock, value); }

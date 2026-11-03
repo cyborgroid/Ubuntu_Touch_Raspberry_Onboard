@@ -6,5 +6,3 @@ Exec=/usr/bin/cyborgroid-shell
 Icon=cyborgroid
 Terminal=false
 Categories=Network;System;
-X-Lomiri-Touch=true
-X-Ubuntu-Touch=true

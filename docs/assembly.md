@@ -5,7 +5,7 @@
 | 단계 | 하는 일 | 다음으로 넘어가는 조건 |
 |---|---|---|
 | 1 | 모니터로 부팅 | Ubuntu 데스크톱이 뜸 |
-| 2 | 터치 패널 연결 | 패널에 Lomiri가 뜨고 터치가 맞음 |
+| 2 | 터치 패널 연결 | 패널에 터치 홈 화면이 뜨고 터치가 맞음 |
 | 3 | Wi-Fi, VPN, 오디오 | 대시보드 값이 실제 상태와 일치 |
 | 4 | 케이스 조립 | 부하 시험에서 온도와 Wi-Fi가 허용 범위 |
 | 5 | 배터리 | 안전 조건 충족 |
@@ -16,7 +16,7 @@
 
 | 부품 | 메모 |
 |---|---|
-| Raspberry Pi 5 (8GB 권장) | Lomiri와 GNOME을 함께 담은 이미지라 메모리가 넉넉한 쪽이 좋습니다 |
+| Raspberry Pi 5 (8GB 권장) | Ubuntu 데스크톱 전체가 들어가는 이미지라 메모리가 넉넉한 쪽이 좋습니다 |
 | 공식 27W USB-C 전원 어댑터 | 시험 중 전원 문제를 배제하기 위해 |
 | microSD 64GB 이상, A2 등급 | |
 | micro-HDMI → HDMI 케이블과 모니터 | |
@@ -50,22 +50,20 @@ systemctl --failed
 
 1. `sudo poweroff` 후 전원과 모니터를 뺍니다. 전원이 켜진 채 케이블을 꽂으면 안 됩니다.
 2. DSI 케이블을 Pi 5의 22핀 **DSI1** 포트(제조사 권장)와 패널에 연결합니다. 케이블 방향은 [제조사 위키](https://waveshare.com/wiki/4inch_DSI_LCD)의 Pi 5 사진을 따르세요. 전원도 이 케이블로 공급되어 GPIO 배선은 필요 없습니다.
-3. 전원을 넣으면 패널에 Lomiri가 떠야 합니다. 터치 위치와 화면 방향을 확인합니다.
+3. 전원을 넣으면 패널에 터치 홈 화면이 떠야 합니다. 터치 위치와 화면 방향을 확인합니다.
 
 | 증상 | 조치 |
 |---|---|
 | 패널이 켜지지 않음 | 케이블 방향과 DSI 포트 확인. `/boot/firmware/config.txt`의 `[pi5]` 설정 확인 |
 | 화면은 나오는데 터치가 어긋남 | 오버레이 끝에 `,invx`, `,invy`, `,swapxy`를 붙여 시험 |
 | 포트가 DSI0 | 오버레이 끝에 `,dsi0` 추가 |
-| Lomiri 대신 GNOME이 뜸 | Lomiri가 30초 안에 종료되어 대체된 것입니다. `journalctl _UID=1000 \| grep session:`으로 확인 |
+| 홈 화면이 뜨지 않음 | 모니터를 연결해 터미널에서 `journalctl _UID=1000 \| grep session:`으로 확인 |
 
-부트 파티션은 FAT이라 다른 컴퓨터에서도 `config.txt`를 고칠 수 있습니다. 전원이 들어간 상태에서 HDMI를 꽂으면 Ubuntu로, 뽑으면 Lomiri로 전환되는지도 확인합니다. 전환 시 열린 앱은 닫힙니다.
-
-UI 크기는 `/etc/cyborgroid/session.conf`의 `GRID_UNIT_PX`로 조절합니다.
+부트 파티션은 FAT이라 다른 컴퓨터에서도 `config.txt`를 고칠 수 있습니다. 전원이 들어간 상태에서 HDMI를 꽂으면 Ubuntu로, 뽑으면 터치 홈 화면으로 전환되는지도 확인합니다. 전환 시 열린 앱은 닫힙니다.
 
 ## 3단계: Wi-Fi, VPN, 오디오
 
-**Wi-Fi:** Lomiri 설정 또는 Ubuntu 설정에서 연결합니다. Cyborgroid 앱의 수신량과 레이더 값이 움직이면 코어 엔진이 실제 Wi-Fi를 읽고 있는 것입니다.
+**Wi-Fi:** 홈 화면의 Wi-Fi 타일 또는 Ubuntu 설정에서 연결합니다. Cyborgroid 앱의 수신량과 레이더 값이 움직이면 코어 엔진이 실제 Wi-Fi를 읽고 있는 것입니다.
 
 **VPN:** WireGuard 서버는 직접 준비해야 합니다. 준비되면 부트 파티션에 `cyborgroid/wg0.conf`를 넣고 부팅합니다. 파일은 시스템으로 옮겨지고 부트 파티션에서 삭제됩니다.
 
@@ -124,7 +122,7 @@ PersistentKeepalive = 25
 
 - Pi 5 펌웨어를 포함한 실제 부팅
 - 이 패널과 오버레이의 Ubuntu 26.04 호환성, 터치 방향
-- Lomiri와 GNOME의 V3D GPU 동작
+- 터치 화면과 GNOME의 실제 GPU 동작
 - HDMI 연결과 분리에 따른 자동 전환
 - 실제 Wi-Fi 스캔과 레이더 표시
 - 오디오 장치와 통화
