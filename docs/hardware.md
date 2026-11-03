@@ -4,7 +4,9 @@
 
 ## After 렌더링이 Pi 5와 맞지 않는 부분
 
-사진 속 기기는 Pi 5가 아니라 이전 세대의 포트 배치입니다. 케이스를 설계할 때는 렌더링이 아니라 Pi 5 기계 도면을 기준으로 해야 합니다.
+Before 이미지는 실제 판매 제품인 **Flirc Raspberry Pi 3 Case(실버)**의 제품 사진으로, The Pi Hut 판매 사진과 픽셀 차이가 평균 약 0.25/255에 불과합니다. 이 케이스는 Pi 3 B+, 3, 2, B+용이라 Pi 5가 들어가지 않습니다. Pi 5에는 별도 제품인 Flirc Raspberry Pi 5 Case(94 × 66 × 28 mm)를 기준으로 삼아야 합니다.
+
+After 이미지는 이 사진을 바탕으로 만든 합성 또는 생성 이미지로 보이며, 실제 제품 사진이 아닙니다. 화면 글자가 깨져 있고, Flirc 제품 목록에 터치스크린 케이스가 없습니다. 케이스를 설계할 때는 렌더링이 아니라 Pi 5 기계 도면을 기준으로 해야 합니다.
 
 | 렌더링 | 실제 Raspberry Pi 5 | 조치 |
 |---|---|---|
@@ -17,19 +19,17 @@
 
 ## 적층 구조
 
-`certification.md`는 메인보드, 배터리, 화면이 "단자 높이 안에 딱 맞게" 들어간다고 했습니다. 단자가 기판 위로 올라오는 만큼 배터리와 화면은 그 위아래로 더해지므로, 실제로는 단자 높이에 층이 추가됩니다.
+`certification.md`는 메인보드, 배터리, 화면이 "단자 높이 안에 딱 맞게" 들어간다고 했습니다. 하지만 배터리와 화면은 포트 영역의 위아래에 더해지므로 높이가 늘어납니다. 렌더링의 높이는 Before와 약 1%밖에 차이 나지 않아(이미지 높이 대비 0.357 대 0.354) 이 추가 층을 담을 공간이 없습니다.
 
 | 층 (위→아래) | 추정 두께 |
 |---|---|
-| 터치 LCD와 커버 글래스 | 3–5 mm |
-| 포트 영역 (USB 2단 기준) | 약 16 mm |
-| Pi 5 기판 | 1.6 mm |
+| 터치 LCD와 커버 글래스 | 5–8 mm (제품별 확인 필요) |
+| Flirc Pi 5 케이스 본체 | 28 mm (판매처 사양) |
 | 절연 및 단열층 | 1–2 mm |
 | Li-Po 셀과 BMS | 6–10 mm |
-| 케이스 상하판 | 2–3 mm |
-| **합계** | **약 30–38 mm** |
+| **합계** | **약 40–48 mm** |
 
-렌더링처럼 얇게 만들 수는 없습니다. 두께를 더 줄이려면 USB 단자를 제거해야 하므로, 보드 개조 또는 Compute Module 5 기반 재설계가 필요합니다.
+렌더링처럼 얇게 만들 수는 없습니다. 두께를 크게 줄이려면 USB 단자를 제거해야 하므로, 보드 개조 또는 Compute Module 5 기반 재설계가 필요합니다.
 
 ## 화면 크기
 
@@ -38,7 +38,10 @@
 | 선택 | 외곽 크기 | 장단점 |
 |---|---|---|
 | 공식 Touch Display 2, 5인치 | 91.5 × 143.5 mm, 깊이 16 mm | 자동 인식, OS 설정 불필요. 다만 Pi보다 훨씬 길어 렌더링 형태가 아니고, 깊이 16 mm는 위 표의 3–5 mm보다 큼 |
-| 타사 DSI 3.5–4인치 | 제품별 | 렌더링 형태에 가장 근접. 제조사가 Pi 5용 오버레이를 제공하는지 구매 전 확인 필요 |
+| Waveshare 4-DSI-TOUCH-A, 4인치 480×800 | 108.3 × 65.1 mm, 표시 영역 86.4 × 51.84 mm | 표시 영역은 케이스 상판(94 × 66 mm) 안에 들어가지만 유리가 긴 쪽으로 약 14 mm 튀어나옴. 세로형 패널이라 회전 필요 |
+| Waveshare 3.5inch DSI LCD (E), 640×480 | 텍스트 사양 없음, 도면 확인 필요 | 렌더링 형태에 가장 근접할 가능성. 화면이 작고 베젤이 렌더링보다 넓어질 수 있음 |
+
+렌더링처럼 베젤 없이 상판을 꽉 채우는 기성 패널은 찾지 못했습니다. 두 Waveshare 패널은 Pi 5 지원으로 표시되어 있지만 오버레이 설정은 제조사 문서로 확인해야 합니다.
 
 공식 패널은 세로형(720×1280)이므로 `/etc/cyborgroid/sway.d/display.conf`에 90도 회전을 기본으로 넣어 두었습니다. Pi 5의 MIPI 커넥터는 22핀 미니 규격이라 22핀–15핀 변환 FFC가 필요합니다.
 
@@ -51,11 +54,11 @@
 - **연료 게이지가 있어야 잔량이 표시됩니다.** 셸은 `/sys/class/power_supply`에 배터리가 없으면 `--`로 표시하며, 값을 지어내지 않습니다. 렌더링의 78% 위젯을 쓰려면 리눅스 드라이버가 있는 I²C 게이지(예: MAX17048)와 기기 트리 설정이 필요합니다.
 - **저전압 안전 종료:** 잔량 신호가 없으면 방전 시 전원이 그냥 끊어져 SD 카드가 손상될 수 있습니다.
 
-런타임 추정: 5,000 mAh 셀은 약 18.5 Wh이고, 변환 손실과 소비전력(유휴 약 3–5 W, 부하 시 10 W 이상, 화면 별도)을 감안하면 **보통 사용 2–4시간, 부하 시 1시간 남짓**입니다.
+런타임 추정: 케이스 바닥 면적에 7–8 mm 두께로 들어가는 셀은 약 3,000–4,000 mAh(11–15 Wh)입니다. 변환 손실과 소비전력(유휴 약 3–5 W, 부하 시 10 W 이상, 화면 별도)을 감안하면 **보통 사용 2–3시간, 부하 시 1시간 안팎**입니다.
 
 ## 발열
 
-Pi 5는 부하가 걸리면 냉각이 필요합니다. Flirc 케이스는 상판을 방열판으로 쓰는데, 렌더링처럼 상판 자리에 화면이 오면 이 경로가 사라집니다. 측벽으로 열을 빼는 구조를 새로 설계하고, 부하 테스트로 `vcgencmd measure_temp` 값을 확인해야 합니다. Li-Po는 보통 충전 상한이 45 °C 부근이므로 SoC와 셀 사이에 단열층을 두세요.
+Pi 5는 부하가 걸리면 냉각이 필요합니다. Flirc 케이스는 알루미늄 몸체와 서멀 패드로 칩의 열을 빼내는 수동 냉각 구조입니다. 상판 위에 화면을 올리면 칩 접촉 경로는 남지만 윗면 방열이 막히고 패널이 함께 데워지므로, 측벽 방열을 보강하고 부하 테스트로 `vcgencmd measure_temp` 값을 확인해야 합니다. DSI 케이블은 몸체를 가공해 통과시켜야 합니다. Li-Po는 보통 충전 상한이 45 °C 부근이므로 SoC와 셀 사이에 단열층을 두세요.
 
 ## 무선
 
@@ -73,5 +76,10 @@ Pi 5는 부하가 걸리면 냉각이 필요합니다. Flirc 케이스는 상판
 
 ## 참고 자료
 
+- [Flirc Raspberry Pi 3B Case (제조사)](https://flirc.tv/raspberry-pi-case)
+- [FLIRC Raspberry Pi 3 Case (The Pi Hut)](https://thepihut.com/products/flirc-raspberry-pi-3-b-case)
+- [Flirc Aluminum Case for Raspberry Pi 5 (Adafruit)](https://www.adafruit.com/product/5847)
+- [Waveshare 4-DSI-TOUCH-A](https://www.waveshare.com/4-dsi-touch-a.htm)
+- [Waveshare 3.5inch DSI LCD (E)](https://www.waveshare.com/3.5inch-dsi-lcd-e.htm)
 - [Raspberry Pi Touch Display 2 문서](https://www.raspberrypi.com/documentation/accessories/touch-display-2.html)
 - [USB Power Delivery on Raspberry Pi 5 백서](https://pip-assets.raspberrypi.com/categories/685-app-notes-guides-whitepapers/documents/RP-009856-WP-1-USB%20Power%20delivery%20on%20Raspberry%20Pi%205.pdf)

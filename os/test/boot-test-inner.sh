@@ -40,6 +40,8 @@ ExecStart=/usr/local/sbin/boot-probe.sh
 WantedBy=graphical.target
 UNIT
 ln -sf /etc/systemd/system/boot-probe.service "$MNT/etc/systemd/system/graphical.target.wants/boot-probe.service"
+# A getty on the same port hangs up the probe's open file, losing all its output.
+ln -sf /dev/null "$MNT/etc/systemd/system/serial-getty@ttyAMA0.service"
 umount "$MNT"
 loop_detach_all
 

@@ -3,14 +3,15 @@
 # drive os/test/qmp-watch.py, which takes the screenshots.
 export LC_ALL=C.UTF-8
 sec() { echo; echo "##### $*"; }
+sec "probe started"
 
 as_cyborg() {
   local uid; uid=$(id -u cyborg)
-  sudo -u cyborg env XDG_RUNTIME_DIR="/run/user/$uid" SWAYSOCK="$(ls /run/user/"$uid"/sway-ipc.*.sock 2>/dev/null | head -1)" "$@"
+  timeout 30 sudo -u cyborg env XDG_RUNTIME_DIR="/run/user/$uid" SWAYSOCK="$(ls /run/user/"$uid"/sway-ipc.*.sock 2>/dev/null | head -1)" "$@"
 }
 
 # Give the session time to settle; TCG is slow.
-for _ in $(seq 1 90); do
+for _ in $(seq 1 60); do
   as_cyborg swaymsg -t get_tree 2>/dev/null | grep -q cyborgroid-shell && break
   sleep 5
 done
