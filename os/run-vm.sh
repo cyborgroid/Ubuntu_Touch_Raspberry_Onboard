@@ -51,11 +51,14 @@ echo "==> 가상 기기를 시작합니다. 첫 부팅은 몇 분 걸립니다. 
 # The display's access cookie is tied to the hostname, so the container must share it.
 docker run --rm --name cyborgroid-vm --user "$(id -u):$(id -g)" --hostname "$(hostname)" \
   -e HOME=/tmp -e DISPLAY -e DISK=/build/vm-disk.img "${XAUTH_ARGS[@]}" \
-  -v /tmp/.X11-unix:/tmp/.X11-unix -v "$BUILD:/build" "$TOOLS_IMAGE" bash -euc '
-    offset=$(sfdisk -J "$DISK" | python3 -c "import json,sys; print(json.load(sys.stdin)[\"partitiontable\"][\"partitions\"][1][\"start\"]*512)")
-    version=$(debugfs -R "ls -p /boot" "$DISK?offset=$offset" 2>/dev/null | tr "/" "\n" | grep -m1 "^vmlinuz-" | sed s/vmlinuz-//)
-    debugfs -R "dump /boot/vmlinuz-$version /tmp/vmlinuz" "$DISK?offset=$offset" 2>/dev/null
-    debugfs -R "dump /boot/initrd.img-$version /tmp/initrd" "$DISK?offset=$offset" 2>/dev/null
+  -e IMAGE="/build/$(basename "$IMG")" -v /tmp/.X11-unix:/tmp/.X11-unix -v "$BUILD:/build" \
+  "$TOOLS_IMAGE" bash -euc '
+    # From the pristine image: the working disk may not have been shut down cleanly.
+    offset=$(sfdisk -J "$IMAGE" | python3 -c "import json,sys; print(json.load(sys.stdin)[\"partitiontable\"][\"partitions\"][1][\"start\"]*512)")
+    version=$(debugfs -R "ls -p /boot" "$IMAGE?offset=$offset" 2>/dev/null | tr "/" "\n" | grep -m1 "^vmlinuz-" | sed s/vmlinuz-//)
+    debugfs -R "dump /boot/vmlinuz-$version /tmp/vmlinuz" "$IMAGE?offset=$offset" 2>/dev/null
+    debugfs -R "dump /boot/initrd.img-$version /tmp/initrd" "$IMAGE?offset=$offset" 2>/dev/null
+    [ -s /tmp/vmlinuz ] && [ -s /tmp/initrd ] || { echo "이미지에서 부팅 파일을 읽지 못했습니다." >&2; exit 1; }
     exec qemu-system-aarch64 -name Cyborgroid -M virt -cpu max -smp 8 -m 4096 -accel tcg,thread=multi \
       -kernel /tmp/vmlinuz -initrd /tmp/initrd \
       -append "root=LABEL=writable rootfstype=ext4 rootwait console=ttyAMA0" \

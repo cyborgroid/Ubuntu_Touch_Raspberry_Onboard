@@ -65,6 +65,7 @@ ln -sf /opt/cyborgroid/shell/cyborgroid-shell "$MNT/usr/bin/cyborgroid-shell"
 mkdir -p "$MNT/tmp/cyborgroid"
 cp "$OS_DIR/packages.list" "$MNT/tmp/cyborgroid/"
 cp "$HERE/chroot-setup.sh" "$MNT/tmp/cyborgroid/"
+cp "$OS_DIR/wvkbd/hangul.patch" "$MNT/tmp/cyborgroid/"
 cat "$OS_DIR/boot-config.txt" >> "$MNT/boot/firmware/config.txt"
 mkdir -p "$MNT/boot/firmware/cyborgroid"
 

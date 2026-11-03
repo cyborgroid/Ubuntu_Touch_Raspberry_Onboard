@@ -9,7 +9,7 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/b
 
 POLL_SECS=2
 # Left in the user manager by a session; the next one must not inherit them.
-SESSION_ENV="WAYLAND_DISPLAY DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP GNOME_SHELL_SESSION_MODE"
+SESSION_ENV="WAYLAND_DISPLAY DISPLAY SWAYSOCK XMODIFIERS XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP GNOME_SHELL_SESSION_MODE"
 
 current_mode() { cyborgroid-core query mode 2>/dev/null || echo mobile; }
 
@@ -20,7 +20,8 @@ start_ubuntu() {
 }
 
 start_touch() {
-  XDG_CURRENT_DESKTOP=sway XDG_SESSION_DESKTOP=sway sway --config /usr/share/cyborgroid/sway/mobile.conf &
+  XDG_CURRENT_DESKTOP=sway XDG_SESSION_DESKTOP=sway XMODIFIERS=@im=fcitx \
+    sway --config /usr/share/cyborgroid/sway/mobile.conf &
   pid=$!
 }
 
@@ -28,6 +29,7 @@ stop_user_session() {
   # The home screen outlives its compositor, and would add itself to the next one.
   pkill -f /usr/lib/cyborgroid/shell-loop.sh
   pkill -f /opt/cyborgroid/shell/cyborgroid-shell
+  pkill -x fcitx5
   systemctl --user stop graphical-session.target 2>/dev/null
   # shellcheck disable=SC2086
   systemctl --user unset-environment $SESSION_ENV 2>/dev/null

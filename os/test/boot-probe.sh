@@ -107,6 +107,32 @@ open_tile calculator 584 460 45; close_app
 open_tile wifi 360 738 30; close_app
 open_tile settings 584 1016 60; close_app
 open_tile browser 360 180 240; close_app
+sec "type Korean with the on-screen keyboard"
+pgrep -a -u cyborg -x fcitx5 | cut -c1-80
+as_cyborg fcitx5-remote -n; which wvkbd-mobintl
+type_key() { echo "@@TAP $1 $2"; sleep 3; }
+echo "@@TAP 360 460"; sleep 40     # home screen: notes
+echo "@@TAP 360 300"; sleep 4      # into the text area
+echo "@@TAP 534 1246"; sleep 8     # navigation bar: on-screen keyboard
+echo "@@SHOT typing-latin"; sleep 6
+type_key 54 1174                   # layer key: to the Hangul layer
+sleep 4
+echo "input method on the Hangul layer: $(as_cyborg fcitx5-remote -n)"
+echo "@@SHOT typing-hangul-layer"; sleep 6
+# ㅎㅏㄴ ㄱㅡㄹ: the keys g k s r m f, which must compose into 한글.
+type_key 360 1022; type_key 576 1022; type_key 144 1022
+type_key 252 946;  type_key 576 1098; type_key 288 1022
+type_key 360 1174                  # space
+echo "@@SHOT typing-korean"; sleep 6
+type_key 54 1174; type_key 54 1174 # layer key twice: symbols, then back to Latin
+sleep 4
+echo "input method back on Latin: $(as_cyborg fcitx5-remote -n)"
+type_key 72 1022; type_key 684 870 # the keys a and 0 as plain characters
+echo "@@SHOT typing-latin-after"; sleep 6
+echo "@@TAP 534 1246"; sleep 5
+close_app
+as_cyborg pkill gnome-text-editor
+
 echo "@@TAP 534 1246"; sleep 10    # navigation bar: on-screen keyboard
 echo "@@SHOT tap-keyboard"; sleep 8
 echo "@@TAP 534 1246"; sleep 5

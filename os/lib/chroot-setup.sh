@@ -13,6 +13,30 @@ apt-get update
 grep -vE '^[[:space:]]*(#|$)' /tmp/cyborgroid/packages.list \
   | xargs apt-get install -y --no-install-recommends
 
+# The on-screen keyboard has no Hangul layer, so build it from the archive's source
+# with os/wvkbd/hangul.patch. Only packages this step added are removed afterwards.
+dpkg-query -W -f '${Package}\n' | sort > /tmp/cyborgroid/before-build
+sources=/etc/apt/sources.list.d/ubuntu.sources
+cp "$sources" /tmp/cyborgroid/ubuntu.sources
+sed -i 's/^Types: deb$/Types: deb deb-src/' "$sources"
+apt-get update
+apt-get install -y --no-install-recommends dpkg-dev gcc make pkg-config patch \
+  libwayland-dev libpango1.0-dev libxkbcommon-dev wayland-protocols
+(
+  cd /tmp/cyborgroid
+  apt-get source wvkbd
+  cd wvkbd-*/
+  patch -p1 < /tmp/cyborgroid/hangul.patch
+  make -j"$(nproc)"
+  install -m 755 wvkbd-mobintl /usr/local/bin/wvkbd-mobintl
+)
+cp /tmp/cyborgroid/ubuntu.sources "$sources"
+dpkg-query -W -f '${Package}\n' | sort > /tmp/cyborgroid/after-build
+comm -13 /tmp/cyborgroid/before-build /tmp/cyborgroid/after-build | xargs -r apt-get purge -y
+
+# GNOME keeps its own input method; fcitx5 belongs to the touch session only.
+rm -f /etc/xdg/autostart/org.fcitx.Fcitx5.desktop
+
 # firstboot.sh replaces cloud-init. Disabled rather than purged, as is GDM below:
 # they sit under the ubuntu-desktop metapackage, and removing them would leave the
 # rest of the desktop open to autoremove.
