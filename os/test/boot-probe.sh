@@ -90,6 +90,29 @@ echo "calculator rc=$?"
 journalctl _UID="$uid" --no-pager | grep -iE 'waybar|calculator|cannot open display|gtk' | tail -12 | cut -c1-170
 free -h | sed -n 1,2p
 
+sec "use the touch screen: tap icons and the navigation bar"
+workspace() { as_cyborg swaymsg -t get_workspaces | python3 -c 'import json,sys; print([w["name"] for w in json.load(sys.stdin) if w["focused"]])'; }
+windows() { as_cyborg swaymsg -t get_tree | grep -oE '"(app_id|class)": "[^"]+"' | sort -u | tr '\n' ' '; echo; }
+open_tile() { # name x y seconds
+  echo "@@TAP $2 $3"; sleep "$4"
+  echo "after tapping $1: workspace $(workspace), windows: $(windows)"
+  echo "@@SHOT tap-$1"; sleep 8
+}
+close_app() {
+  echo "@@TAP 174 1246"; sleep 8   # navigation bar: close
+  echo "@@TAP 286 1246"; sleep 6   # navigation bar: home
+  echo "after closing: workspace $(workspace), windows: $(windows)"
+}
+open_tile calculator 584 460 45; close_app
+open_tile wifi 360 738 30; close_app
+open_tile settings 584 1016 60; close_app
+open_tile browser 360 180 240; close_app
+echo "@@TAP 534 1246"; sleep 10    # navigation bar: on-screen keyboard
+echo "@@SHOT tap-keyboard"; sleep 8
+echo "@@TAP 534 1246"; sleep 5
+echo "keyboard layers: $(wvkbd-mobintl --help 2>&1 | grep -iE 'layer|hangul|korean' | head -4 | tr '\n' ' ' | cut -c1-200)"
+echo "@@TAP 600 700"; sleep 2
+
 sec "open apps from the touch session"
 as_cyborg swaymsg workspace number 2
 as_cyborg swaymsg exec -- gnome-calculator; sleep 60
@@ -105,6 +128,7 @@ sleep 90
 session_log 6
 ps -eo user,comm | grep -E 'sway|gnome-shell|gnome-session|cyborgroid' | sort -u
 journalctl _UID="$uid" --no-pager -n 600 | grep -E 'gnome-shell|gnome-session' | grep -iE 'error|fail|fatal' | tail -10 | cut -c1-190
+echo "memory on the Ubuntu desktop:"; free -h | sed -n 2p | sed "s/^Mem:/RAM:/"
 echo "crash reports:"; ls -la /var/crash/ 2>/dev/null
 for crash in /var/crash/*.crash; do [ -f "$crash" ] && grep -aE '^(ExecutablePath|Signal|Title):' "$crash"; done
 echo "@@SHOT ubuntu-desktop"; sleep 8

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Follows the test VM's serial log and takes a QMP screenshot at each @@SHOT marker."""
+"""Follows the test VM's serial log; acts on its markers through QMP.
+
+@@SHOT name    takes a screenshot
+@@TAP x y      clicks with the virtual tablet, in pixels of the 720x1280 screen
+"""
 import json
 import socket
 import sys
@@ -7,6 +11,8 @@ import time
 
 qmp_path, log_path, out_dir, timeout = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
 PERIODIC_SECS = 120
+SCREEN_W, SCREEN_H = 720, 1280
+TABLET_MAX = 32767
 
 
 def connect():
@@ -33,6 +39,18 @@ def command(name, **args):
             return reply
 
 
+def tap(x, y):
+    position = [
+        {"type": "abs", "data": {"axis": "x", "value": x * TABLET_MAX // SCREEN_W}},
+        {"type": "abs", "data": {"axis": "y", "value": y * TABLET_MAX // SCREEN_H}},
+    ]
+    command("input-send-event", events=position)
+    time.sleep(0.3)
+    for down in (True, False):
+        command("input-send-event", events=[{"type": "btn", "data": {"down": down, "button": "left"}}])
+        time.sleep(0.15)
+
+
 command("qmp_capabilities")
 deadline = time.time() + timeout
 offset = 0
@@ -50,6 +68,9 @@ while time.time() < deadline:
         if line.startswith("@@SHOT "):
             name = line.split()[1]
             print("screenshot:", name, command("screendump", filename=f"{out_dir}/{name}.ppm"), flush=True)
+        elif line.startswith("@@TAP "):
+            _, x, y = line.split()
+            tap(int(x), int(y))
         elif line == "@@DONE":
             print("probe finished", flush=True)
             sys.exit(0)
