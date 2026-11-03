@@ -4,3 +4,7 @@ enabled-extensions=['cyborgroid-touch@cyborgroid']
 
 [org.gnome.desktop.input-sources]
 sources=[('xkb', 'us'), ('ibus', 'hangul')]
+
+# Start in Hangul: on a touch screen there is no Hangul key to switch with.
+[org.freedesktop.ibus.engine.hangul]
+initial-input-mode='hangul'

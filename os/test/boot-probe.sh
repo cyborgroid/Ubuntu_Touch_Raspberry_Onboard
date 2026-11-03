@@ -98,14 +98,15 @@ open_tile settings 411 305 30; close_app
 open_tile video 68 305 30; close_app
 open_tile token 296 412 25; close_app
 open_tile browser 182 199 150; close_app 15
-open_tile all-apps 411 412 8; keys esc; sleep 5
+open_tile all-apps 411 412 25
+keys esc; sleep 10
 shot home-again
 
 sec "Korean: typed with a hardware key, then on the on-screen keyboard"
 tap 174 92 30                # notes
 tap 240 200 5
 keys meta_l-spc
-sleep 6
+sleep 10
 shot osk-korean
 journalctl _UID="$uid" --no-pager -n 300 | grep -iE 'ibus|hangul' | tail -5 | cut -c1-150
 pgrep -a ibus-engine | cut -c1-70
