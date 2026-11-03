@@ -25,6 +25,9 @@ start_touch() {
 }
 
 stop_user_session() {
+  # The home screen outlives its compositor, and would add itself to the next one.
+  pkill -f /usr/lib/cyborgroid/shell-loop.sh
+  pkill -f /opt/cyborgroid/shell/cyborgroid-shell
   systemctl --user stop graphical-session.target 2>/dev/null
   # shellcheck disable=SC2086
   systemctl --user unset-environment $SESSION_ENV 2>/dev/null

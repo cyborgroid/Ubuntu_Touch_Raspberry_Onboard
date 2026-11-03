@@ -2,7 +2,7 @@
 {
   "layer": "top",
   "position": "bottom",
-  "height": 40,
+  "height": 64,
   "spacing": 0,
   "modules-center": ["custom/close", "custom/home", "custom/switch", "custom/keyboard"],
   "custom/home": {
