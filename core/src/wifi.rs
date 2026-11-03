@@ -147,23 +147,69 @@ pub fn analyze(aps: Vec<AccessPoint>, previous: Option<&[AccessPoint]>) -> Spati
     }
 }
 
-/// Actively scan, falling back to the kernel's cached results when another
-/// client (NetworkManager, usually) holds the radio or we lack CAP_NET_ADMIN.
+/// `nmcli -t` output: `BSSID:SSID:FREQ:SIGNAL`, with colons inside fields escaped as
+/// `\\:`. NetworkManager reports signal as a percentage, converted here to an
+/// approximate dBm with its own formula.
+pub fn parse_nmcli(output: &str) -> Vec<AccessPoint> {
+    output
+        .lines()
+        .filter_map(|line| {
+            let mut fields = Vec::new();
+            let mut field = String::new();
+            let mut chars = line.chars();
+            while let Some(c) = chars.next() {
+                match c {
+                    '\\' => field.extend(chars.next()),
+                    ':' => fields.push(std::mem::take(&mut field)),
+                    _ => field.push(c),
+                }
+            }
+            fields.push(field);
+            let [bssid, ssid, freq, signal] = <[String; 4]>::try_from(fields).ok()?;
+            let bssid = bssid.to_lowercase();
+            let freq_mhz: u32 = freq.split_whitespace().next()?.parse().ok()?;
+            let percent: f32 = signal.parse().ok()?;
+            Some(AccessPoint {
+                id: id_of(&bssid),
+                bssid,
+                ssid,
+                freq_mhz,
+                channel: channel_of(freq_mhz),
+                rssi_dbm: percent / 2.0 - 100.0,
+            })
+        })
+        .collect()
+}
+
+fn run(program: &str, args: &[&str]) -> Result<String, String> {
+    let out = Command::new("timeout")
+        .arg("20")
+        .arg(program)
+        .args(args)
+        .output()
+        .map_err(|e| format!("{program}: {e}"))?;
+    if out.status.success() {
+        Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+    } else {
+        Err(String::from_utf8_lossy(&out.stderr).trim().to_owned())
+    }
+}
+
+/// Actively scans with `iw`, then falls back to its cached results for when another
+/// client (NetworkManager, usually) holds the radio or we lack CAP_NET_ADMIN, and
+/// finally to `nmcli`, which needs neither `iw` nor any privilege.
 pub fn scan(interface: &str) -> Result<Vec<AccessPoint>, String> {
-    let run = |args: &[&str]| -> Result<String, String> {
-        let out = Command::new("timeout")
-            .args(["20", "iw", "dev", interface])
-            .args(args)
-            .output()
-            .map_err(|e| format!("iw: {e}"))?;
-        if out.status.success() {
-            Ok(String::from_utf8_lossy(&out.stdout).into_owned())
-        } else {
-            Err(String::from_utf8_lossy(&out.stderr).trim().to_owned())
-        }
-    };
-    let text = run(&["scan"]).or_else(|_| run(&["scan", "dump"]))?;
-    Ok(parse_iw_scan(&text))
+    let iw = run("iw", &["dev", interface, "scan"])
+        .or_else(|_| run("iw", &["dev", interface, "scan", "dump"]))
+        .map(|text| parse_iw_scan(&text));
+    iw.or_else(|iw_error| {
+        run(
+            "nmcli",
+            &["-t", "-f", "BSSID,SSID,FREQ,SIGNAL", "device", "wifi", "list", "ifname", interface],
+        )
+        .map(|text| parse_nmcli(&text))
+        .map_err(|nmcli_error| format!("{iw_error}; {nmcli_error}"))
+    })
 }
 
 #[cfg(test)]
@@ -227,6 +273,18 @@ BSS aa:bb:cc:66:77:88(on wlan0)
         let moved = analyze(Vec::new(), Some(&aps));
         assert_eq!((moved.similarity, moved.environment), (Some(0.0), "moved"));
         assert_eq!((moved.density, moved.mean_rssi_dbm), ("none", None));
+    }
+
+    #[test]
+    fn parses_nmcli_output_with_escaped_colons() {
+        let text = "AA\\:BB\\:CC\\:00\\:11\\:22:home\\:net:2437 MHz:80\n\
+                    AA\\:BB\\:CC\\:33\\:44\\:55::5180 MHz:40\n\
+                    not a scan line\n";
+        let aps = parse_nmcli(text);
+        assert_eq!(aps.len(), 2);
+        assert_eq!((aps[0].ssid.as_str(), aps[0].channel, aps[0].rssi_dbm), ("home:net", 6, -60.0));
+        assert_eq!(aps[0].bssid, "aa:bb:cc:00:11:22");
+        assert_eq!((aps[1].ssid.as_str(), aps[1].channel, aps[1].rssi_dbm), ("", 36, -80.0));
     }
 
     #[test]
