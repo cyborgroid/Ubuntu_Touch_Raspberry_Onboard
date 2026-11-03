@@ -51,10 +51,16 @@ mount "$BOOT_LOOP" "$MNT/boot/firmware"
 for fs in proc sys dev dev/pts; do mount --rbind "/$fs" "$MNT/$fs"; done
 
 echo "==> copying payload"
-cp -a "$OS_DIR/overlay/." "$MNT/"
+# Everything is root-owned whoever ran the build, and directories that already
+# exist in the image keep their metadata. The builder's uid is also the uid of the
+# device's auto-login user, so keeping it would let that user rewrite /etc and
+# the scripts that run as root.
+tar -C "$OS_DIR/overlay" --owner=0 --group=0 --numeric-owner --mode='u+rwX,go+rX,go-w' -cf - . \
+  | tar -C "$MNT" --no-overwrite-dir -xf -
 install -m 755 "$CORE" "$MNT/usr/bin/cyborgroid-core"
 mkdir -p "$MNT/opt/cyborgroid/shell"
-cp -a "$SHELL_DIR/." "$MNT/opt/cyborgroid/shell/"
+tar -C "$SHELL_DIR" --owner=0 --group=0 --numeric-owner --mode='u+rwX,go+rX,go-w' -cf - . \
+  | tar -C "$MNT/opt/cyborgroid/shell" -xf -
 ln -sf /opt/cyborgroid/shell/cyborgroid-shell "$MNT/usr/bin/cyborgroid-shell"
 mkdir -p "$MNT/tmp/cyborgroid"
 cp "$OS_DIR/packages.list" "$MNT/tmp/cyborgroid/"
@@ -73,6 +79,13 @@ chroot "$MNT" /usr/bin/env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin HOME=/root \
 
 rm -f "$MNT/etc/resolv.conf"
 [ -n "$RESOLV_LINK" ] && ln -s "$RESOLV_LINK" "$MNT/etc/resolv.conf"
+
+echo "==> checking ownership"
+stray=$(find "$MNT/etc" "$MNT/usr" "$MNT/opt" "$MNT/var/lib/cyborgroid-firstboot" -xdev -uid +999 ! -uid 65534 2>/dev/null | head -20)
+if [ -n "$stray" ] || [ "$(stat -c %u "$MNT" "$MNT/etc" "$MNT/usr" | sort -u)" != 0 ]; then
+  echo "system files not owned by root:"; echo "$stray"
+  exit 1
+fi
 
 echo "==> shrinking"
 umount -R "$MNT"

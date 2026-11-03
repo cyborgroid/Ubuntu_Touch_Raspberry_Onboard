@@ -19,6 +19,9 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
+        <Style Selector="Button.tile:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
         <Style Selector="Button.tile:disabled /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent" />
         </Style>

@@ -31,6 +31,14 @@ test -s /home/cyborg/initial-password.txt && echo "password file non-empty"
 passwd --status cyborg
 ls /etc/ssh/ssh_host_ed25519_key
 wc -c /etc/machine-id
+sec "ownership (the auto-login user must not be able to change the system)"
+stat -c '%U:%G %a %n' / /etc /usr /etc/sudoers.d /usr/lib/cyborgroid/firstboot.sh /usr/lib/cyborgroid/wireguard-killswitch.sh \
+  /etc/systemd/system/cyborgroid-firstboot.service /usr/bin/cyborgroid-core /opt/cyborgroid/shell/cyborgroid-shell
+echo "system files owned by cyborg: $(find /etc /usr /opt -xdev -user cyborg 2>/dev/null | wc -l)"
+for path in /etc /usr/lib/cyborgroid/firstboot.sh /etc/systemd/system; do
+  if sudo -u cyborg test -w "$path"; then echo "WRITABLE by cyborg: $path"; else echo "not writable by cyborg: $path"; fi
+done
+sudo -u cyborg sudo -n true 2>&1 | head -1
 sec "core engine"
 ls -la /run/cyborgroid/
 sudo -u cyborg cyborgroid-core query mode
