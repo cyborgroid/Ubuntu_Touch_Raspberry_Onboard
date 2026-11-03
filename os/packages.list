@@ -1,0 +1,57 @@
+# Installed on top of the official Ubuntu 26.04 Raspberry Pi server image with
+# --no-install-recommends, so anything needed at runtime has to be listed here.
+
+# Session
+sway
+waybar
+foot
+wvkbd
+xwayland
+wlr-randr
+grim
+dbus-user-session
+polkitd
+libgl1-mesa-dri
+libegl1
+libgbm1
+libinput-tools
+
+# Ubuntu Touch user interface and apps (Lomiri, from the Ubuntu archive)
+lomiri
+lomiri-desktop-session
+lomiri-system-settings
+lomiri-filemanager-app
+lomiri-gallery-app
+lomiri-music-app
+lomiri-calculator-app
+lomiri-terminal-app
+morph-browser
+
+# Avalonia runtime dependencies (the shell itself is self-contained .NET)
+libx11-6
+libice6
+libsm6
+libxcursor1
+libxi6
+libxrandr2
+libfontconfig1
+
+# Network and security
+network-manager
+wireguard-tools
+iptables
+iw
+
+# Audio and calls
+pipewire-audio
+pipewire-pulse
+wireplumber
+baresip-core
+bluez
+
+# First boot
+cloud-guest-utils
+
+# Fonts
+fonts-noto-cjk
+fonts-noto-color-emoji

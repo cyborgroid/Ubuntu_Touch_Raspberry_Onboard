@@ -1,0 +1,11 @@
+
+# --- Cyborgroid ---
+[pi5]
+# Full KMS is what the compositor and Mesa V3D need.
+dtoverlay=vc4-kms-v3d
+# DSI: official Touch Displays are auto-detected. A third-party panel of the size
+# in the After render needs its vendor's overlay here instead.
+# Battery power: leave this commented out unless the boost converter really
+# delivers 5 V 5 A; it lets the USB ports draw 1.6 A instead of 600 mA.
+#usb_max_current_enable=1
+[all]

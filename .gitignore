@@ -1,0 +1,7 @@
+# Rust / .NET build output
+core/target/
+shell/bin/
+shell/obj/
+
+# OS image build cache and output
+build/
