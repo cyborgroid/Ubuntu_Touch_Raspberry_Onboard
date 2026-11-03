@@ -13,10 +13,11 @@ apt-get update
 grep -vE '^[[:space:]]*(#|$)' /tmp/cyborgroid/packages.list \
   | xargs apt-get install -y --no-install-recommends
 
-# cloud-init and snapd are server provisioning; firstboot.sh replaces the former.
-apt-get purge -y cloud-init snapd
-apt-get autoremove -y
-rm -rf /var/lib/snapd /etc/cloud /var/lib/cloud /etc/netplan/50-cloud-init.yaml
+# firstboot.sh replaces cloud-init. Disabled rather than purged, as is GDM below:
+# they sit under the ubuntu-desktop metapackage, and removing them would leave the
+# rest of the desktop open to autoremove.
+touch /etc/cloud/cloud-init.disabled
+rm -f /etc/netplan/50-cloud-init.yaml
 
 groupadd --system cyborgroid
 for group in netdev bluetooth plugdev; do groupadd --force --system "$group"; done
@@ -34,6 +35,10 @@ systemctl set-default graphical.target
 systemctl enable cyborgroid-firstboot.service cyborgroid-killswitch.service \
   cyborgroid-core.service cyborgroid-session.service NetworkManager.service wg-quick@wg0.service
 systemctl disable ssh.service ssh.socket systemd-networkd-wait-online.service getty@tty1.service || true
+# cyborgroid-session owns the display and chooses between Lomiri and GNOME.
+systemctl disable gdm3.service || true
+systemctl mask gdm3.service
+rm -f /etc/systemd/system/display-manager.service
 
 # The image must not carry identity shared by every device flashed from it.
 rm -f /etc/ssh/ssh_host_*

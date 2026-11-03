@@ -9,9 +9,9 @@
 # temporarily registers arm64 emulation with the host kernel if it isn't already.
 set -euo pipefail
 
-BASE_NAME=ubuntu-26.04.1-preinstalled-server-arm64+raspi.img.xz
+BASE_NAME=ubuntu-26.04.1-preinstalled-desktop-arm64+raspi.img.xz
 BASE_URL=https://cdimage.ubuntu.com/ubuntu/releases/26.04/release/$BASE_NAME
-BASE_SHA256=d59ef9c6e85b906995501f166d00726ab80b59be7b65cdeac0fa31b996053e13
+BASE_SHA256=8216f54cc1df2fcf7de37530a7edccdd200abd7dcfbc5d4f0407df7513544d6a
 BUILDER_IMAGE=ubuntu:26.04
 
 ROOT=$(dirname "$(dirname "$(readlink -f "$0")")")

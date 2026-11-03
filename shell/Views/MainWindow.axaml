@@ -11,23 +11,6 @@
             <Setter Property="Background" Value="#2D2D2D" />
             <Setter Property="CornerRadius" Value="12" />
         </Style>
-        <Style Selector="Button.tile">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Padding" Value="2" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="VerticalAlignment" Value="Stretch" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.tile:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        <Style Selector="Button.tile:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        <Style Selector="Button.tile:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#22FFFFFF" />
-        </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto">
@@ -56,27 +39,6 @@
 
         <!-- 페이지 -->
         <Panel Grid.Row="1" Margin="16,8">
-
-            <!-- 홈: After 이미지의 앱 그리드 -->
-            <ItemsControl IsVisible="{Binding IsHomePage}" ItemsSource="{Binding Tiles}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <UniformGrid Columns="{Binding GridColumns, DataType=vm:MainViewModel}" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:AppTile">
-                        <Button Classes="tile" Command="{Binding Command}" Opacity="{Binding Opacity}">
-                            <StackPanel Spacing="4" HorizontalAlignment="Center">
-                                <Border Width="56" Height="56" CornerRadius="14" Background="{Binding Background}" HorizontalAlignment="Center">
-                                    <PathIcon Width="30" Height="30" Data="{Binding Icon}" Foreground="{Binding IconBrush}" />
-                                </Border>
-                                <TextBlock Text="{Binding Title}" FontSize="12" Foreground="#DDDDDD" HorizontalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
 
             <!-- 대시보드: 아키텍처 사양서 6장 -->
             <Grid IsVisible="{Binding IsDashboardPage}" RowDefinitions="Auto,*,Auto" RowSpacing="8">
@@ -124,7 +86,6 @@
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                 <Ellipse Width="7" Height="7" Fill="{Binding Dot0}" />
                 <Ellipse Width="7" Height="7" Fill="{Binding Dot1}" />
-                <Ellipse Width="7" Height="7" Fill="{Binding Dot2}" />
             </StackPanel>
             <TextBlock Grid.Column="2" Text="CYBORGROID" FontSize="10" LetterSpacing="2" Foreground="#66FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Center" />
         </Grid>

@@ -5,23 +5,30 @@ export LC_ALL=C.UTF-8
 sec() { echo; echo "##### $*"; }
 sec "probe started"
 
+uid=$(id -u cyborg)
 as_cyborg() {
-  local uid; uid=$(id -u cyborg)
-  timeout 30 sudo -u cyborg env XDG_RUNTIME_DIR="/run/user/$uid" SWAYSOCK="$(ls /run/user/"$uid"/sway-ipc.*.sock 2>/dev/null | head -1)" "$@"
+  timeout 60 sudo -u cyborg env XDG_RUNTIME_DIR="/run/user/$uid" \
+    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" "$@"
+}
+session_log() { journalctl _UID="$uid" --no-pager | grep -E 'session: ' | tail -"$1"; }
+wait_for() { # process-name max-seconds
+  local i
+  for ((i = 0; i < $2; i += 5)); do
+    pgrep -u cyborg -x "$1" >/dev/null && { echo "$1 running after ${i}s"; return 0; }
+    sleep 5
+  done
+  echo "$1 NOT running after $2s"
+  return 1
 }
 
-# Give the session time to settle; TCG is slow.
-for _ in $(seq 1 60); do
-  as_cyborg swaymsg -t get_tree 2>/dev/null | grep -q cyborgroid-shell && break
-  sleep 5
-done
-sleep 20
+wait_for lomiri 900
+sleep 60
 
 sec "system state"
 systemctl is-system-running
 systemctl --no-pager --failed
 sec "cyborgroid units"
-for u in cyborgroid-firstboot cyborgroid-killswitch cyborgroid-core cyborgroid-session wg-quick@wg0 ssh; do
+for u in cyborgroid-firstboot cyborgroid-killswitch cyborgroid-core cyborgroid-session wg-quick@wg0 ssh gdm3 cloud-init; do
   printf '%-26s active=%s enabled=%s\n' "$u" "$(systemctl is-active "$u")" "$(systemctl is-enabled "$u" 2>/dev/null)"
 done
 sec "first boot"
@@ -42,40 +49,54 @@ sudo -u cyborg sudo -n true 2>&1 | head -1
 sec "core engine"
 ls -la /run/cyborgroid/
 sudo -u cyborg cyborgroid-core query mode
-sudo -u cyborg cyborgroid-core query status
+sudo -u cyborg cyborgroid-core query status | cut -c1-400
 systemctl show cyborgroid-core -p User -p NRestarts -p CapabilityBoundingSet --no-pager
-sec "session journal"
-journalctl -u cyborgroid-session --no-pager -n 25
-sec "sway windows"
-as_cyborg swaymsg -t get_tree | python3 -c '
-import json, sys
-def walk(n):
-    if n.get("pid"):
-        print(n.get("app_id"), (n.get("window_properties") or {}).get("class"), "visible=%s" % n.get("visible"), n.get("name"), n["rect"]["width"], n["rect"]["height"])
-    for c in n.get("nodes", []) + n.get("floating_nodes", []): walk(c)
-walk(json.load(sys.stdin))'
-as_cyborg swaymsg -t get_outputs | python3 -c 'import json,sys; [print(o["name"], o["current_mode"]) for o in json.load(sys.stdin)]'
-ps -eo user,comm | grep -E 'sway|waybar|wvkbd|cyborgroid' | sort -u
-echo "@@SHOT mobile"; sleep 8
+sec "network"
+ip -br addr
+nmcli -t -f DEVICE,TYPE,STATE device status
+if timeout 25 bash -c '</dev/tcp/archive.ubuntu.com/80' 2>/dev/null; then echo "egress: ok"; else echo "egress: blocked"; fi
+sec "kill-switch"
+ls -la /etc/wireguard/ /boot/firmware/cyborgroid/
+systemctl --no-pager --lines=4 status cyborgroid-killswitch wg-quick@wg0 | cut -c1-120
+wg show 2>&1 | grep -v 'private key' | cut -c1-80
+iptables -S | head -30
+ip6tables -S | head -6
 
-sec "launch a Lomiri app from the mobile session"
-as_cyborg swaymsg workspace number 2
-as_cyborg swaymsg exec -- lomiri-calculator-app
-sleep 60
-as_cyborg swaymsg -t get_tree | grep -oE '"app_id": "[^"]+"' | sort -u
+sec "touch mode: Ubuntu Touch (Lomiri)"
+session_log 6
+ps -eo user,comm | grep -iE 'lomiri|maliit|gnome-shell|mir' | sort -u
+as_cyborg systemctl --user --no-pager --lines=15 status lomiri.service 2>&1 | cut -c1-170
+as_cyborg systemctl --user show-environment | grep -E '^(GRID_UNIT_PX|XDG_CURRENT_DESKTOP|WAYLAND_DISPLAY)='
+echo "@@SHOT touch"; sleep 8
+
+sec "open apps inside Lomiri"
+as_cyborg lomiri-app-launch cyborgroid; echo "launch cyborgroid rc=$?"
+sleep 75
+pgrep -a -u cyborg -f /opt/cyborgroid/shell/cyborgroid-shell | cut -c1-120
+journalctl _UID="$uid" --no-pager -n 400 | grep -iE 'cyborgroid-shell|avalonia' | tail -12 | cut -c1-190
+echo "@@SHOT dashboard"; sleep 8
+as_cyborg lomiri-app-launch lomiri-calculator-app; echo "launch calculator rc=$?"
+sleep 75
+pgrep -a -u cyborg -f calculator | cut -c1-100
 echo "@@SHOT app"; sleep 8
-as_cyborg swaymsg workspace number 1
 
-sec "automatic mode switch to desktop (forced, the VM has no HDMI)"
+sec "monitor connected: standard Ubuntu desktop (forced, the VM has no HDMI)"
 sudo -u cyborg cyborgroid-core set-mode desktop
-sleep 150
-ps -eo user,comm | grep -iE 'lomiri|sway|mir' | sort -u
-journalctl -u cyborgroid-session --no-pager -n 15
-echo "@@SHOT desktop"; sleep 8
+wait_for gnome-shell 420
+sleep 90
+session_log 6
+ps -eo user,comm | grep -iE 'lomiri|gnome-shell|gnome-session' | sort -u
+journalctl _UID="$uid" --no-pager -n 600 | grep -E 'gnome-shell|gnome-session' | grep -iE 'error|fail|fatal' | tail -10 | cut -c1-190
+echo "@@SHOT ubuntu-desktop"; sleep 8
 
+sec "monitor removed: back to Ubuntu Touch"
 sudo -u cyborg cyborgroid-core set-mode mobile
+sleep 15
+wait_for lomiri 420
 sleep 60
-ps -eo user,comm | grep -iE 'lomiri|sway' | sort -u
-journalctl -b -p err --no-pager -n 25
-echo "@@SHOT mobile-again"; sleep 8
+session_log 6
+ps -eo user,comm | grep -iE 'lomiri|gnome-shell' | sort -u
+echo "cyborgroid shell processes: $(pgrep -c -u cyborg -f /opt/cyborgroid/shell/cyborgroid-shell)"
+journalctl -b -p err --no-pager -n 15 | cut -c1-170
+echo "@@SHOT touch-again"; sleep 8
 echo "@@DONE"

@@ -51,28 +51,10 @@ pub fn external_display_connected(sys_root: &Path) -> bool {
     })
 }
 
-/// Parses `/proc/bus/input/devices`. Only a USB or Bluetooth device with letter
-/// keys counts: the power button, CEC remotes and mouse receivers also register
-/// a `kbd` handler but must not flip the device to desktop mode.
-pub fn has_external_keyboard(devices: &str) -> bool {
-    devices.split("\n\n").any(|block| {
-        let external = block
-            .lines()
-            .next()
-            .is_some_and(|l| l.contains("Bus=0003") || l.contains("Bus=0005"));
-        let has_letters = block.lines().find_map(|l| l.strip_prefix("B: KEY=")).is_some_and(|k| {
-            // The bitmap is hex words, most significant first, 64 bits each.
-            // Words are little-endian in bit order, so word 0 is the last one.
-            let word0 = k.split_whitespace().last().and_then(|w| u64::from_str_radix(w, 16).ok());
-            word0.is_some_and(|w| [16, 30, 44].iter().all(|bit| w & (1 << bit) != 0))
-        });
-        external && has_letters
-    })
-}
-
-pub fn detect_mode(sys_root: &Path, proc_root: &Path) -> Mode {
-    let devices = fs::read_to_string(proc_root.join("bus/input/devices")).unwrap_or_default();
-    if external_display_connected(sys_root) && has_external_keyboard(&devices) {
+/// The touchscreen runs Ubuntu Touch; a connected monitor means the full Ubuntu
+/// desktop. A DSI panel has a different connector name, so it never matches.
+pub fn detect_mode(sys_root: &Path) -> Mode {
+    if external_display_connected(sys_root) {
         Mode::Desktop
     } else {
         Mode::Mobile
@@ -127,37 +109,6 @@ pub fn vpn(sys_root: &Path, wg_interface: &str, killswitch_marker: &Path) -> Vpn
 mod tests {
     use super::*;
 
-    // Real-shaped entries: a USB keyboard, a USB mouse receiver and the Pi 5
-    // power button, the last two of which also expose the kbd handler.
-    const KEYBOARD: &str = "\
-I: Bus=0003 Vendor=046d Product=c31c Version=0110
-N: Name=\"Logitech USB Keyboard\"
-H: Handlers=sysrq kbd event0 leds
-B: EV=120013
-B: KEY=1000000000007 ff9f207ac14057ff febeffdfffefffff fffffffffffffffe
-";
-    const MOUSE: &str = "\
-I: Bus=0003 Vendor=046d Product=c52b Version=0111
-N: Name=\"Logitech Receiver\"
-H: Handlers=sysrq kbd mouse0 event1
-B: KEY=ffff0000 0 0 0 0
-";
-    const POWER: &str = "\
-I: Bus=0019 Vendor=0001 Product=0001 Version=0100
-N: Name=\"pwr_button\"
-H: Handlers=kbd event2
-B: KEY=fffffffffffffffe
-";
-
-    #[test]
-    fn only_a_real_external_keyboard_counts() {
-        assert!(has_external_keyboard(KEYBOARD));
-        assert!(!has_external_keyboard(MOUSE));
-        assert!(!has_external_keyboard(POWER));
-        assert!(has_external_keyboard(&format!("{POWER}\n{MOUSE}\n{KEYBOARD}")));
-        assert!(!has_external_keyboard(&format!("{POWER}\n{MOUSE}")));
-    }
-
     #[test]
     fn handshake_age_uses_newest_peer_and_ignores_never() {
         assert_eq!(parse_handshake_age("k1\t0\nk2\t900\nk3\t950\n", 1000), Some(50));
@@ -173,21 +124,20 @@ B: KEY=fffffffffffffffe
     }
 
     #[test]
-    fn mode_needs_both_display_and_keyboard() {
+    fn mode_follows_the_monitor_and_ignores_the_panel() {
         let root = fake_tree("mode");
-        let hdmi = root.join("class/drm/card1-HDMI-A-1");
-        fs::create_dir_all(&hdmi).unwrap();
-        fs::create_dir_all(root.join("bus/input")).unwrap();
-        fs::write(root.join("bus/input/devices"), KEYBOARD).unwrap();
+        let dsi = root.join("class/drm/card1-DSI-1");
+        fs::create_dir_all(&dsi).unwrap();
+        fs::write(dsi.join("status"), "connected\n").unwrap();
+        assert_eq!(detect_mode(&root), Mode::Mobile);
 
+        let hdmi = root.join("class/drm/card2-HDMI-A-1");
+        fs::create_dir_all(&hdmi).unwrap();
         fs::write(hdmi.join("status"), "disconnected\n").unwrap();
-        assert_eq!(detect_mode(&root, &root), Mode::Mobile);
+        assert_eq!(detect_mode(&root), Mode::Mobile);
 
         fs::write(hdmi.join("status"), "connected\n").unwrap();
-        assert_eq!(detect_mode(&root, &root), Mode::Desktop);
-
-        fs::write(root.join("bus/input/devices"), POWER).unwrap();
-        assert_eq!(detect_mode(&root, &root), Mode::Mobile);
+        assert_eq!(detect_mode(&root), Mode::Desktop);
         fs::remove_dir_all(&root).unwrap();
     }
 

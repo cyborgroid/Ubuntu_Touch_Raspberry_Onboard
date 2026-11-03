@@ -18,9 +18,8 @@ pub struct Config {
     pub state_dir: PathBuf,
     /// Written by `wireguard-killswitch.sh` while the firewall is closed.
     pub killswitch_marker: PathBuf,
-    /// Overridable so tests and dev machines can point at a fake tree.
+    /// Overridable so dev machines can point at a fake tree.
     pub sys_root: PathBuf,
-    pub proc_root: PathBuf,
 }
 
 impl Default for Config {
@@ -36,7 +35,6 @@ impl Default for Config {
             state_dir: "/var/lib/cyborgroid".into(),
             killswitch_marker: "/run/cyborgroid-net/killswitch.active".into(),
             sys_root: "/sys".into(),
-            proc_root: "/proc".into(),
         }
     }
 }

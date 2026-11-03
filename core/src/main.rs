@@ -111,7 +111,7 @@ fn daemon(config: Config) {
     let state = Arc::new(Mutex::new(State {
         ledger,
         rx_error: None,
-        detected_mode: system::detect_mode(&config.sys_root, &config.proc_root),
+        detected_mode: system::detect_mode(&config.sys_root),
         forced_mode: None,
         battery: None,
         vpn: system::vpn(&config.sys_root, &config.wg_interface, &config.killswitch_marker),
@@ -162,7 +162,7 @@ fn tick_loop(state: Arc<Mutex<State>>, config: &Config, ledger_path: &Path, term
 
         let rx = system::rx_bytes(&config.sys_root, &config.interface);
         // Slow external commands run outside the lock so IPC never stalls on them.
-        let mode = system::detect_mode(&config.sys_root, &config.proc_root);
+        let mode = system::detect_mode(&config.sys_root);
         let battery = system::battery(&config.sys_root);
         let vpn = system::vpn(&config.sys_root, &config.wg_interface, &config.killswitch_marker);
 
