@@ -30,7 +30,7 @@ chmod +x "$MNT/usr/local/sbin/boot-probe.sh"
 cat > "$MNT/etc/systemd/system/boot-probe.service" <<'UNIT'
 [Unit]
 Description=Boot test probe
-After=cyborgroid-session.service
+After=gdm.service
 [Service]
 Type=oneshot
 StandardOutput=file:/dev/ttyAMA0
