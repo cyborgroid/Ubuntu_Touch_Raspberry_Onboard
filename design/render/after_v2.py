@@ -2,13 +2,13 @@
 
     blender -b -P design/render/after_v2.py -- OUTPUT.png [SIZE] [SAMPLES]
 
-Dimensions in mm. Case: Flirc Raspberry Pi 5 Case, 94 x 66 x 28 (retailer spec), with
-port positions scaled from its product photos. Panel: Waveshare 4inch DSI LCD, 104.37 x
-65.44 outline and 87 x 52.44 display (maker's drawing); its 5 mm thickness is an
-estimate. The screen is design/render/screen.png, captured from the built OS image.
+Dimensions in mm. Panel: official 5-inch Touch Display 2, 143.5 x 91.5 outline and 16
+deep (maker's spec); its display area and the split of that depth are estimates. Board:
+Raspberry Pi 5, 85 x 56, screwed to the back of the panel. The screen is
+design/render/screen.png, captured from the built OS image.
 
-Axes: x along the case's length with the USB end at +x, y across with the front long
-side at -y, z up from the table.
+The device is shown lying screen-up, resting on its ports. Axes: x along its length
+with the USB end at +x, y across with the board's USB-C edge at -y, z up from the table.
 """
 import math
 import os
@@ -23,14 +23,13 @@ SIZE = int(argv[1]) if len(argv) > 1 else 1024
 SAMPLES = int(argv[2]) if len(argv) > 2 else 256
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-CASE_L, CASE_W, CASE_H = 94.0, 66.0, 28.0
-PANEL_L, PANEL_W, PANEL_T = 104.37, 65.44, 5.0
-SCREEN_L, SCREEN_W = 87.0, 52.44
-CHIN = 10.87  # The panel's wider bezel, kept at the port end like a phone's chin.
-TAPE_T = 1.0  # Double-sided tape between the case and the panel.
-PANEL_Z = CASE_H + TAPE_T
-PANEL_X1 = CASE_L / 2  # Flush at the USB end, so the overhang is at the far end.
-PANEL_X0 = PANEL_X1 - PANEL_L
+PANEL_L, PANEL_W = 143.5, 91.5
+SCREEN_L, SCREEN_W = 110.7, 62.3
+BOARD_L, BOARD_W, BOARD_T = 85.0, 56.0, 1.6
+PORT_H = 16.0  # USB stack height; the ports hang below the board in this pose.
+BOARD_Z = PORT_H
+PANEL_BACK_Z = BOARD_Z + BOARD_T + 9.0
+PANEL_TOP_Z = BOARD_Z + BOARD_T + 16.0
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
@@ -51,17 +50,15 @@ def material(name, color, metallic=0.0, roughness=0.5, emission=None, strength=0
     return mat
 
 
-ALUMINIUM = material("aluminium", (0.78, 0.78, 0.79), metallic=1.0, roughness=0.32)
-TAPE = material("tape", (0.82, 0.82, 0.83), metallic=1.0, roughness=0.42)
-SOFT_BLACK = material("soft_black", (0.012, 0.012, 0.014), roughness=0.55)
+ALUMINIUM = material("aluminium", (0.55, 0.55, 0.56), metallic=1.0, roughness=0.35)
+PCB = material("pcb", (0.02, 0.22, 0.1), roughness=0.45)
 GLASS_BLACK = material("glass_black", (0.004, 0.004, 0.005), roughness=0.06, coat=1.0)
 CAVITY = material("cavity", (0.006, 0.006, 0.007), roughness=0.6)
 SHELL = material("shell", (0.62, 0.62, 0.64), metallic=1.0, roughness=0.3)
 BLUE = material("usb3_blue", (0.02, 0.2, 0.75), roughness=0.4)
-GOLD = material("gold", (0.9, 0.65, 0.25), metallic=1.0, roughness=0.3)
+GOLD = material("usb2_black", (0.01, 0.01, 0.012), roughness=0.5)
 LED_GREEN = material("led_green", (0.1, 0.8, 0.2), emission=(0.1, 1, 0.2), strength=3)
 LED_YELLOW = material("led_yellow", (0.8, 0.8, 0.1), emission=(1, 0.85, 0.1), strength=3)
-ENGRAVE = material("engrave", (0.45, 0.45, 0.47), metallic=1.0, roughness=0.5)
 
 
 def rounded_prism(name, x0, x1, y0, y1, z0, z1, r, mat, edge_bevel=0.0, segments=10):
@@ -117,73 +114,47 @@ def cut(body, cutter):
     bpy.data.objects.remove(cutter)
 
 
-x0, x1 = -CASE_L / 2, CASE_L / 2
-y0, y1 = -CASE_W / 2, CASE_W / 2
+x0, x1 = -BOARD_L / 2, BOARD_L / 2
+y0, y1 = -BOARD_W / 2, BOARD_W / 2
 
-body = rounded_prism("case", x0, x1, y0, y1, 1.2, CASE_H - 0.8, 3.2, ALUMINIUM, edge_bevel=0.25)
-apply_modifiers(body)
-rounded_prism("case_foot", x0 + 1, x1 - 1, y0 + 1, y1 - 1, 0.0, 1.2, 2.5, SOFT_BLACK)
-rounded_prism("case_lid", x0 + 0.5, x1 - 0.5, y0 + 0.5, y1 - 0.5, CASE_H - 0.8, CASE_H, 2.8, SOFT_BLACK)
-
-# Short end: Ethernet and the lower USB row. y runs -33..33, z from the table.
-DEPTH = 7
-RJ45 = (-28.9, -13.2, 4.0, 19.0)
-USB_LOWER = ((-8.9, 5.7, BLUE), (10.5, 25.1, CAVITY))
-UPPER_Z = (17.3, 23.7)
-LOWER_Z = (8.8, 15.0)
+rounded_prism("board", x0, x1, y0, y1, BOARD_Z, BOARD_Z + BOARD_T, 3.0, PCB)
+for sx, sy in ((-1, -1), (-1, 1), (1, -1), (1, 1)):
+    cx, cy = sx * 29.0, sy * 24.5
+    rounded_prism("standoff", cx - 1.8, cx + 1.8, cy - 1.8, cy + 1.8, BOARD_Z + BOARD_T, PANEL_BACK_Z, 1.7, SHELL)
 
 
-def end_hole(a, b, z0, z1, r=0.9):
-    cutter = rounded_prism("hole", x1 - DEPTH, x1 + 3, a, b, z0, z1, 0.01, ALUMINIUM)
-    cut(body, cutter)
+def end_port(a, b, z0, z1, tongue=None):
+    """A connector on the +x edge, with its opening facing the viewer."""
+    box("port_shell", x1 - 16, x1 + 2.5, a, b, z0, z1, SHELL)
+    box("port_mouth", x1 + 2.5, x1 + 2.56, a + 0.6, b - 0.6, z0 + 0.6, z1 - 0.6, CAVITY)
+    if tongue:
+        mid = (z0 + z1) / 2
+        box("port_tongue", x1 + 2.56, x1 + 2.62, a + 1.6, b - 1.6, mid - 0.7, mid + 0.7, tongue)
 
 
-end_hole(RJ45[0], RJ45[1], RJ45[2], RJ45[3])
-box("rj45_back", x1 - DEPTH + 0.1, x1 - 2.2, RJ45[0] + 0.5, RJ45[1] - 0.5, RJ45[2] + 0.5, RJ45[3] - 0.5, CAVITY)
-box("rj45_led_y", x1 - 2.3, x1 - 1.8, RJ45[0] + 1.2, RJ45[0] + 4.2, RJ45[2] + 1.2, RJ45[2] + 3.2, LED_YELLOW)
-box("rj45_led_g", x1 - 2.3, x1 - 1.8, RJ45[1] - 4.2, RJ45[1] - 1.2, RJ45[2] + 1.2, RJ45[2] + 3.2, LED_GREEN)
-for a, b, tongue in USB_LOWER:
-    end_hole(a, b, *LOWER_Z)
-    box("usb_back", x1 - DEPTH + 0.1, x1 - 5, a + 0.2, b - 0.2, LOWER_Z[0] + 0.2, LOWER_Z[1] - 0.2, CAVITY)
-    box("usb_tongue", x1 - 6, x1 - 1.6, a + 1.2, b - 1.2, LOWER_Z[0] + 3.0, LOWER_Z[0] + 4.3, tongue)
-
-# The upper USB row exists on the board but is hidden behind aluminium tape.
-box("tape", x1 - 0.05, x1 + 0.09, -10.2, 26.4, UPPER_Z[0] - 1.0, UPPER_Z[1] + 1.0, TAPE)
-
-# Long side: USB-C and two micro-HDMI.
-PORT_Z = 8.0
+end_port(-26.0, -10.0, 2.5, BOARD_Z)
+box("rj45_led_y", x1 + 2.6, x1 + 2.68, -25.0, -22.5, 3.2, 5.0, LED_YELLOW)
+box("rj45_led_g", x1 + 2.6, x1 + 2.68, -13.5, -11.0, 3.2, 5.0, LED_GREEN)
+for a, b, tongue in ((-6.0, 8.2, BLUE), (12.0, 26.2, GOLD)):
+    end_port(a, b, 0.6, 7.6, tongue)
+    end_port(a, b, 8.4, BOARD_Z, tongue)
 
 
-def side_port(center, width, height, mat_tongue):
+def side_port(center, width):
+    """A connector on the -y edge."""
     a, b = center - width / 2, center + width / 2
-    z0, z1 = PORT_Z - height / 2, PORT_Z + height / 2
-    cutter = rounded_prism("side_hole", a, b, y0 - 3, y0 + DEPTH, z0, z1, min(width, height) * 0.45, ALUMINIUM)
-    cut(body, cutter)
-    box("side_back", a + 0.2, b - 0.2, y0 + 3.0, y0 + DEPTH - 0.1, z0 + 0.2, z1 - 0.2, CAVITY)
-    box("side_tongue", a + 1.1, b - 1.1, y0 + 2.0, y0 + 3.2, PORT_Z - 0.35, PORT_Z + 0.35, mat_tongue)
+    rounded_prism("side_shell", a, b, y0 - 1.2, y0 + 7, BOARD_Z - 3.6, BOARD_Z, 1.0, SHELL)
+    box("side_mouth", a + 0.6, b - 0.6, y0 - 1.26, y0 - 1.2, BOARD_Z - 3.0, BOARD_Z - 0.6, CAVITY)
 
 
-side_port(-32.85, 9.9, 3.7, CAVITY)
-side_port(-16.6, 7.8, 3.7, GOLD)
-side_port(-3.2, 7.8, 3.7, GOLD)
+side_port(-31.3, 9.0)
+side_port(-16.7, 6.8)
+side_port(-3.3, 6.8)
 
-curve = bpy.data.curves.new("flirc", "FONT")
-curve.body = "FLIRC"
-curve.size = 7.0
-curve.extrude = 0.06
-curve.materials.append(ENGRAVE)
-logo = bpy.data.objects.new("flirc", curve)
-bpy.context.collection.objects.link(logo)
-logo.rotation_euler = (math.radians(90), 0, 0)
-logo.location = (17.0, y0 + 0.02, 5.5)
-
-# Boolean cuts leave n-gons that smooth shading smears, so only real curves stay smooth.
-body.data.set_sharp_from_angle(angle=math.radians(35))
-
-# Panel: glass on a thin black body, with tape showing as the seam under it.
-rounded_prism("tape_layer", x0 + 1, x1 - 1, y0 + 1, y1 - 1, CASE_H, PANEL_Z, 2.5, CAVITY)
-rounded_prism("panel", PANEL_X0, PANEL_X1, -PANEL_W / 2, PANEL_W / 2, PANEL_Z, PANEL_Z + PANEL_T, 3.0,
-              GLASS_BLACK, edge_bevel=0.35)
+# Panel: a metal back tray under the glass, with the screen roughly centred.
+hl, hw = PANEL_L / 2, PANEL_W / 2
+rounded_prism("panel_back", -hl + 2, hl - 2, -hw + 2, hw - 2, PANEL_BACK_Z, PANEL_TOP_Z - 2.0, 3.5, ALUMINIUM, edge_bevel=0.3)
+rounded_prism("panel", -hl, hl, -hw, hw, PANEL_TOP_Z - 2.0, PANEL_TOP_Z, 4.0, GLASS_BLACK, edge_bevel=0.3)
 
 screen_mat = material("screen", (0, 0, 0), roughness=0.12, coat=0.3)
 nodes = screen_mat.node_tree.nodes
@@ -194,11 +165,11 @@ bsdf = nodes["Principled BSDF"]
 screen_mat.node_tree.links.new(texture.outputs["Color"], bsdf.inputs["Emission Color"])
 bsdf.inputs["Emission Strength"].default_value = 1.35
 
-# Held upright the ports are at the bottom, so the top of the UI is towards -x.
-sx1 = PANEL_X1 - CHIN
-sx0 = sx1 - SCREEN_L
+# Held upright the USB end is at the bottom, so the top of the UI is towards -x.
+sx1 = SCREEN_L / 2
+sx0 = -SCREEN_L / 2
 sy = SCREEN_W / 2
-sz = PANEL_Z + PANEL_T + 0.01
+sz = PANEL_TOP_Z + 0.01
 mesh = bpy.data.meshes.new("screen")
 mesh.from_pydata([(sx1, -sy, sz), (sx1, sy, sz), (sx0, sy, sz), (sx0, -sy, sz)], [], [(0, 1, 2, 3)])
 uv = mesh.uv_layers.new()
@@ -257,12 +228,12 @@ flag.location = (-620, 980, 900)
 point_at(flag, (0, 0, 20))
 
 camera_data = bpy.data.cameras.new("camera")
-camera_data.lens = 118
+camera_data.lens = 92
 camera_data.clip_end = 20000
 camera = bpy.data.objects.new("camera", camera_data)
 bpy.context.collection.objects.link(camera)
 camera.location = (225, -360, 200)
-point_at(camera, (-1, 0, 15))
+point_at(camera, (-1, 0, 17))
 scene.camera = camera
 
 scene.render.engine = "CYCLES"
