@@ -8,9 +8,10 @@ Restart=always
 RestartSec=2
 User=cyborgroid-core
 Group=cyborgroid
-UMask=0007
+# The socket is for whichever account the owner made in Ubuntu's first-run setup.
+UMask=0000
 RuntimeDirectory=cyborgroid
-RuntimeDirectoryMode=0750
+RuntimeDirectoryMode=0755
 StateDirectory=cyborgroid
 StateDirectoryMode=0750
 # `iw` scans and `wg show` need this; the daemon needs nothing else.

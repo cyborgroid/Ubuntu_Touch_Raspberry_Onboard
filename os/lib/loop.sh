@@ -8,7 +8,8 @@ LOOPS=()
 # with it the cleanup.
 loop_attach() { # image offset size
   local free minor
-  free=$(losetup --find)
+  # Prints "/dev/loop29 (lost)" when the node is missing, which is the case handled here.
+  free=$(losetup --find | cut -d' ' -f1)
   minor=${free#/dev/loop}
   [ -e "$free" ] || mknod "$free" b 7 "$minor"
   LOOP_DEV=$(losetup --find --show --offset "$2" --sizelimit "$3" "$1")

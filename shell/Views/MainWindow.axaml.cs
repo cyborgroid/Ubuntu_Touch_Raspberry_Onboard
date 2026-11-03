@@ -15,16 +15,14 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        // Tunnelling, so a swipe that starts on a tile still turns the page.
+        // Tunnelling, so a swipe that starts on a button still turns the page.
         AddHandler(PointerPressedEvent, OnPressed, RoutingStrategies.Tunnel);
         AddHandler(PointerReleasedEvent, OnReleased, RoutingStrategies.Tunnel);
         SizeChanged += (_, e) =>
         {
             if (DataContext is MainViewModel vm)
             {
-                var landscape = e.NewSize.Width >= e.NewSize.Height;
-                vm.GridColumns = landscape ? 4 : 3;
-                vm.CardColumns = landscape ? 2 : 1;
+                vm.CardColumns = e.NewSize.Width >= e.NewSize.Height ? 2 : 1;
             }
         };
     }

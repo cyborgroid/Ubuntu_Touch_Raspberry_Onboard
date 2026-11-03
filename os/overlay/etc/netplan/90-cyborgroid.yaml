@@ -1,4 +1,0 @@
-# Hand all interfaces to NetworkManager so the UI's Wi-Fi tools can manage them.
-network:
-  version: 2
-  renderer: NetworkManager

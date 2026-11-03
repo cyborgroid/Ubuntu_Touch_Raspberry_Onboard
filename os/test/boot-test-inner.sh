@@ -42,6 +42,16 @@ UNIT
 ln -sf /etc/systemd/system/boot-probe.service "$MNT/etc/systemd/system/graphical.target.wants/boot-probe.service"
 # A getty on the same port hangs up the probe's open file, losing all its output.
 ln -sf /dev/null "$MNT/etc/systemd/system/serial-getty@ttyAMA0.service"
+if [ -z "${FIRSTRUN:-}" ]; then
+  # A ready account that logs in by itself, in place of the first-run setup. Disposable:
+  # the shipped image has neither.
+  useradd --root "$MNT" --create-home --shell /bin/bash tester
+  mkdir -p "$MNT/home/tester/.config"
+  echo yes > "$MNT/home/tester/.config/gnome-initial-setup-done"
+  chown -R --reference="$MNT/home/tester" "$MNT/home/tester/.config"
+  sed -i 's/^\[daemon\]$/[daemon]\nAutomaticLoginEnable=true\nAutomaticLogin=tester/' "$MNT/etc/gdm3/custom.conf"
+  grep -q AutomaticLogin=tester "$MNT/etc/gdm3/custom.conf"
+fi
 umount "$MNT"
 if [ -n "${SEED_WG:-}" ]; then
   # 10.0.2.2 is QEMU's host side: reachable, but no peer answers there.
@@ -64,14 +74,14 @@ fi
 loop_detach_all
 
 # Room for firstboot.sh to grow into, as on a real SD card.
-truncate -s +3G "$WORK/disk.img"
+truncate -s +6G "$WORK/disk.img"
 
 echo "==> booting"
 qemu-system-aarch64 -M virt -cpu max -smp 8 -m 6144 -accel tcg,thread=multi \
   -kernel "$WORK/vmlinuz" -initrd "$WORK/initrd.img" \
   -append "root=LABEL=writable rootfstype=ext4 rootwait console=ttyAMA0 systemd.show_status=1" \
   -drive "file=$WORK/disk.img,format=raw,if=none,id=d0" -device virtio-blk-pci,drive=d0 \
-  -device virtio-gpu-pci,xres=720,yres=1280 -device qemu-xhci -device usb-tablet \
+  -device virtio-gpu-pci,xres=480,yres=640 -device qemu-xhci -device usb-tablet \
   -nic user,model=virtio-net-pci -display none -monitor none \
   -qmp "unix:$WORK/qmp.sock,server,nowait" -serial "file:/out/serial.log" &
 QEMU=$!

@@ -1,0 +1,15 @@
+[Unit]
+Description=Cyborgroid: import VPN and Wi-Fi settings from the boot partition
+DefaultDependencies=no
+After=local-fs.target
+Before=cyborgroid-killswitch.service NetworkManager.service wg-quick@wg0.service sysinit.target
+Conflicts=shutdown.target
+ConditionDirectoryNotEmpty=/boot/firmware/cyborgroid
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/cyborgroid/import-seed.sh
+
+[Install]
+WantedBy=sysinit.target

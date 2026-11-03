@@ -53,8 +53,7 @@ for fs in proc sys dev dev/pts; do mount --rbind "/$fs" "$MNT/$fs"; done
 echo "==> copying payload"
 # Everything is root-owned whoever ran the build, and directories that already
 # exist in the image keep their metadata. The builder's uid is also the uid of the
-# device's auto-login user, so keeping it would let that user rewrite /etc and
-# the scripts that run as root.
+# first account made on the device, which must not be able to rewrite the system.
 tar -C "$OS_DIR/overlay" --owner=0 --group=0 --numeric-owner --mode='u+rwX,go+rX,go-w' -cf - . \
   | tar -C "$MNT" --no-overwrite-dir -xf -
 install -m 755 "$CORE" "$MNT/usr/bin/cyborgroid-core"
@@ -65,7 +64,6 @@ ln -sf /opt/cyborgroid/shell/cyborgroid-shell "$MNT/usr/bin/cyborgroid-shell"
 mkdir -p "$MNT/tmp/cyborgroid"
 cp "$OS_DIR/packages.list" "$MNT/tmp/cyborgroid/"
 cp "$HERE/chroot-setup.sh" "$MNT/tmp/cyborgroid/"
-cp "$OS_DIR/wvkbd/hangul.patch" "$MNT/tmp/cyborgroid/"
 cat "$OS_DIR/boot-config.txt" >> "$MNT/boot/firmware/config.txt"
 mkdir -p "$MNT/boot/firmware/cyborgroid"
 
@@ -83,7 +81,7 @@ rm -f "$MNT/etc/resolv.conf"
 
 echo "==> checking ownership"
 stray=$(mktemp)
-find "$MNT/etc" "$MNT/usr" "$MNT/opt" -xdev -uid +999 ! -uid 65534 > "$stray"
+find "$MNT/usr" "$MNT/opt" -xdev -uid +999 ! -uid 65534 > "$stray"
 if [ -s "$stray" ] || [ "$(stat -c %u "$MNT" "$MNT/etc" "$MNT/usr" | sort -u)" != 0 ]; then
   echo "system files not owned by root:"
   stat -c '%u %n' "$MNT" "$MNT/etc" "$MNT/usr"

@@ -1,0 +1,6 @@
+# Defaults for new accounts; each can still be changed in Ubuntu's settings.
+[org.gnome.shell]
+enabled-extensions=['cyborgroid-touch@cyborgroid']
+
+[org.gnome.desktop.input-sources]
+sources=[('xkb', 'us'), ('ibus', 'hangul')]

@@ -2,7 +2,8 @@
 """Follows the test VM's serial log; acts on its markers through QMP.
 
 @@SHOT name    takes a screenshot
-@@TAP x y      clicks with the virtual tablet, in pixels of the 720x1280 screen
+@@TAP x y      clicks with the virtual tablet, in pixels of the test screen
+@@KEYS a-b     presses keys together on the virtual keyboard, as QEMU key names
 """
 import json
 import socket
@@ -11,7 +12,7 @@ import time
 
 qmp_path, log_path, out_dir, timeout = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
 PERIODIC_SECS = 120
-SCREEN_W, SCREEN_H = 720, 1280
+SCREEN_W, SCREEN_H = 480, 640
 TABLET_MAX = 32767
 
 
@@ -71,6 +72,9 @@ while time.time() < deadline:
         elif line.startswith("@@TAP "):
             _, x, y = line.split()
             tap(int(x), int(y))
+        elif line.startswith("@@KEYS "):
+            names = line.split()[1].split("-")
+            command("send-key", keys=[{"type": "qcode", "data": name} for name in names])
         elif line == "@@DONE":
             print("probe finished", flush=True)
             sys.exit(0)
