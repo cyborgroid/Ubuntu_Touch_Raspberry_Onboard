@@ -79,3 +79,10 @@ SEED_WG=1 os/test/boot-test.sh "$IMG"      # VPN 설정을 넣은 부팅
 | 부트 파티션의 `cyborgroid/` | `wg0.conf`(VPN), `*.nmconnection`(Wi-Fi)을 넣으면 부팅 때 가져오고 원본을 지웁니다 |
 
 터치 모드로 들어갈 때 바꾼 Ubuntu 설정은 저장해 두었다가, 모니터 연결이나 확장 기능을 끌 때 그대로 되돌립니다.
+
+## 라이선스
+
+이 저장소의 코드와 문서는 [MIT](LICENSE) 라이선스입니다. 다음은 여기에 포함되지 않습니다.
+
+- `design/`의 이미지: Before는 Flirc의 제품 사진이고, After는 이를 바탕으로 한 이미지입니다. FLIRC 상표가 보입니다.
+- SD 카드 이미지 안의 Ubuntu와 앱: 각자의 라이선스를 따릅니다. Ubuntu 상표 규정도 적용됩니다.
